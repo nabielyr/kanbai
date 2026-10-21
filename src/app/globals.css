@@ -1,26 +1,254 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * KanbAI "Soft Pop" theme.
+ * Warm cream + ink base, tangerine primary, violet for anything AI.
+ * shadcn components read the semantic tokens; KanbAI-specific tokens
+ * (ai, labels, due states, shadows) are added below them.
+ */
 
 @theme inline {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-bricolage);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* KanbAI tokens */
+  --color-column: var(--column);
+  --color-ai: var(--ai);
+  --color-ai-strong: var(--ai-strong);
+  --color-ai-foreground: var(--ai-foreground);
+  --color-ai-soft: var(--ai-soft);
+  --color-sparkle: var(--sparkle);
+
+  --color-label-mint: var(--label-mint);
+  --color-label-mint-foreground: var(--label-mint-foreground);
+  --color-label-sky: var(--label-sky);
+  --color-label-sky-foreground: var(--label-sky-foreground);
+  --color-label-lilac: var(--label-lilac);
+  --color-label-lilac-foreground: var(--label-lilac-foreground);
+  --color-label-peach: var(--label-peach);
+  --color-label-peach-foreground: var(--label-peach-foreground);
+  --color-label-lemon: var(--label-lemon);
+  --color-label-lemon-foreground: var(--label-lemon-foreground);
+  --color-label-rose: var(--label-rose);
+  --color-label-rose-foreground: var(--label-rose-foreground);
+  --color-label-sage: var(--label-sage);
+  --color-label-sage-foreground: var(--label-sage-foreground);
+  --color-label-slate: var(--label-slate);
+  --color-label-slate-foreground: var(--label-slate-foreground);
+
+  --color-due-overdue: var(--due-overdue);
+  --color-due-overdue-soft: var(--due-overdue-soft);
+  --color-due-today: var(--due-today);
+  --color-due-today-soft: var(--due-today-soft);
+  --color-due-soon: var(--due-soon);
+  --color-due-soon-soft: var(--due-soon-soft);
+
+  /* 16px cards, ~22px columns */
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.375);
+  --radius-2xl: calc(var(--radius) * 1.75);
+  --radius-3xl: calc(var(--radius) * 2.25);
+  --radius-4xl: calc(var(--radius) * 2.75);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 1rem;
+
+  --background: #fbf8f3; /* warm cream */
+  --foreground: #1e1b2e; /* ink */
+  --card: #ffffff;
+  --card-foreground: #1e1b2e;
+  --popover: #ffffff;
+  --popover-foreground: #1e1b2e;
+  --primary: #ff7a45; /* tangerine — ink text on top for contrast */
+  --primary-foreground: #1e1b2e;
+  --secondary: #f2ede4;
+  --secondary-foreground: #1e1b2e;
+  --muted: #f2ede4;
+  --muted-foreground: #6b6680;
+  --accent: #f2ede4;
+  --accent-foreground: #1e1b2e;
+  --destructive: #d93f3f;
+  --border: #e9e2d6;
+  --input: #e9e2d6;
+  --ring: #ff9a6e;
+
+  --column: #f4efe6;
+  --ai: #6e4bf5; /* violet, AA with white text */
+  --ai-strong: #5636db;
+  --ai-foreground: #ffffff;
+  --ai-soft: #efeaff;
+  --sparkle: #ffb38f;
+
+  --label-mint: #d5f5e6;
+  --label-mint-foreground: #13623f;
+  --label-sky: #d8ecff;
+  --label-sky-foreground: #18548f;
+  --label-lilac: #e9e1ff;
+  --label-lilac-foreground: #5034b8;
+  --label-peach: #ffe3d3;
+  --label-peach-foreground: #9a3c12;
+  --label-lemon: #fff3c4;
+  --label-lemon-foreground: #7a5a00;
+  --label-rose: #ffdbe5;
+  --label-rose-foreground: #a3214b;
+  --label-sage: #e3ecd9;
+  --label-sage-foreground: #43602a;
+  --label-slate: #e6e5ee;
+  --label-slate-foreground: #46435a;
+
+  --due-overdue: #b42323; /* ~5.3:1 on its soft bg */
+  --due-overdue-soft: #ffe1df;
+  --due-today: #9a4f00; /* ~5.2:1 */
+  --due-today-soft: #ffedd1;
+  --due-soon: #7a6600; /* ~5.2:1 */
+  --due-soon-soft: #fff6c9;
+
+  --shadow-soft: 0 1px 2px rgb(30 27 46 / 0.05), 0 2px 8px rgb(30 27 46 / 0.05);
+  --shadow-lift: 0 4px 10px rgb(30 27 46 / 0.08), 0 16px 32px rgb(30 27 46 / 0.12);
+
+  --chart-1: #ff7a45;
+  --chart-2: #6e4bf5;
+  --chart-3: #2bb673;
+  --chart-4: #3d8fe0;
+  --chart-5: #f2b705;
+  --sidebar: #f7f3ec;
+  --sidebar-foreground: #1e1b2e;
+  --sidebar-primary: #ff7a45;
+  --sidebar-primary-foreground: #1e1b2e;
+  --sidebar-accent: #f2ede4;
+  --sidebar-accent-foreground: #1e1b2e;
+  --sidebar-border: #e9e2d6;
+  --sidebar-ring: #ff9a6e;
+}
+
+.dark {
+  --background: #14121f; /* deep ink */
+  --foreground: #f4f1ea;
+  --card: #221f33;
+  --card-foreground: #f4f1ea;
+  --popover: #221f33;
+  --popover-foreground: #f4f1ea;
+  --primary: #ff8a5b;
+  --primary-foreground: #14121f;
+  --secondary: #2b2840;
+  --secondary-foreground: #f4f1ea;
+  --muted: #2b2840;
+  --muted-foreground: #aaa5bd;
+  --accent: #2b2840;
+  --accent-foreground: #f4f1ea;
+  --destructive: #ff6b6b;
+  --border: rgb(255 255 255 / 0.09);
+  --input: rgb(255 255 255 / 0.14);
+  --ring: #ff8a5b;
+
+  --column: #1b1929;
+  --ai: #9f8bff;
+  --ai-strong: #b4a5ff;
+  --ai-foreground: #14121f;
+  --ai-soft: #2c2650;
+  --sparkle: #ffb38f;
+
+  --label-mint: #163d2d;
+  --label-mint-foreground: #8de8bd;
+  --label-sky: #16324f;
+  --label-sky-foreground: #9fd0ff;
+  --label-lilac: #2d2458;
+  --label-lilac-foreground: #c9b8ff;
+  --label-peach: #4a2617;
+  --label-peach-foreground: #ffbf9c;
+  --label-lemon: #3f3510;
+  --label-lemon-foreground: #ffe27a;
+  --label-rose: #4a1a2b;
+  --label-rose-foreground: #ffa8c2;
+  --label-sage: #263321;
+  --label-sage-foreground: #bcd99e;
+  --label-slate: #2e2c3d;
+  --label-slate-foreground: #cbc8da;
+
+  --due-overdue: #ff7a7a;
+  --due-overdue-soft: #4a1d22;
+  --due-today: #ffb454;
+  --due-today-soft: #45300f;
+  --due-soon: #f2d64b;
+  --due-soon-soft: #3d3612;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
+  --shadow-lift: 0 6px 14px rgb(0 0 0 / 0.35), 0 18px 36px rgb(0 0 0 / 0.4);
+
+  --chart-1: #ff8a5b;
+  --chart-2: #9f8bff;
+  --chart-3: #4fd295;
+  --chart-4: #6fb3ff;
+  --chart-5: #f2d64b;
+  --sidebar: #1b1929;
+  --sidebar-foreground: #f4f1ea;
+  --sidebar-primary: #ff8a5b;
+  --sidebar-primary-foreground: #14121f;
+  --sidebar-accent: #2b2840;
+  --sidebar-accent-foreground: #f4f1ea;
+  --sidebar-border: rgb(255 255 255 / 0.09);
+  --sidebar-ring: #ff8a5b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
