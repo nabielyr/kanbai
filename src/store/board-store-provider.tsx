@@ -20,11 +20,12 @@ export function BoardStoreProvider({
   store?: BoardStore;
   children: React.ReactNode;
 }) {
-  const [store] = useState<BoardStore>(() => {
-    if (externalStore) return externalStore;
+  const [ownStore] = useState<BoardStore | null>(() => {
+    if (externalStore) return null;
     if (!initialData) throw new Error("BoardStoreProvider needs `initialData` or `store`");
     return createBoardStore(initialData);
   });
+  const store = externalStore ?? ownStore!;
   return <BoardStoreContext.Provider value={store}>{children}</BoardStoreContext.Provider>;
 }
 

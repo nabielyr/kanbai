@@ -5,7 +5,16 @@ import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
 import { BoardDnd } from "./dnd/board-dnd";
 
-export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
+export function BoardView({
+  boardId,
+  now,
+  toolbar,
+}: {
+  boardId: string;
+  now: Date;
+  /** Extra controls shown next to the board title. */
+  toolbar?: React.ReactNode;
+}) {
   const board = useBoardData((d) => d.boards[boardId]);
   const cardCount = useBoardData((d) =>
     (d.boards[boardId]?.columnIds ?? []).reduce(
@@ -17,11 +26,14 @@ export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto w-full max-w-screen-2xl px-4 pt-6 pb-4 sm:px-6">
-        <h1 className="text-2xl font-bold sm:text-3xl">{board.title}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {board.columnIds.length} columns · {cardCount} cards
-        </p>
+      <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-4 sm:px-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">{board.title}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {board.columnIds.length} columns · {cardCount} cards
+          </p>
+        </div>
+        {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
       </div>
 
       <BoardDnd boardId={board.id} now={now}>
