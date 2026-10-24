@@ -9,6 +9,7 @@ import {
   moveCard,
   moveColumn,
   renameColumn,
+  restoreCard,
   updateCard,
 } from "./board-ops";
 import { findIntegrityIssues } from "./integrity";
@@ -295,5 +296,23 @@ describe("columns", () => {
 
   it("returns the same state when a column doesn't actually move", () => {
     expect(moveColumn(state, { columnId: TODO, toIndex: 0, now: NOW })).toBe(state);
+  });
+});
+
+describe("restoreCard", () => {
+  it("puts a deleted card back at its original position", () => {
+    const card = state.cards["demo-card-case-study"];
+    const deleted = deleteCard(state, { cardId: card.id, now: NOW });
+    const restored = restoreCard(deleted, { card, index: 1, now: NOW });
+    expect(cardIds(restored, TODO)).toEqual(cardIds(state, TODO));
+    expect(restored.cards[card.id]).toEqual(card);
+    expectConsistent(restored);
+  });
+
+  it("ignores cards that still exist or whose column is gone", () => {
+    const card = state.cards["demo-card-hero"];
+    expect(restoreCard(state, { card, index: 0, now: NOW })).toBe(state);
+    const noColumn = deleteColumn(state, { columnId: DOING, now: NOW });
+    expect(restoreCard(noColumn, { card, index: 0, now: NOW })).toBe(noColumn);
   });
 });

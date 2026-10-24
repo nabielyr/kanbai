@@ -1,37 +1,30 @@
+"use client";
+
 import { Column } from "@/components/column/column";
-import type { PersistedState } from "@/lib/domain/types";
+import { useBoardData } from "@/store/board-store-provider";
 
-interface BoardViewProps {
-  state: PersistedState;
-  boardId: string;
-  now: Date;
-}
-
-export function BoardView({ state, boardId, now }: BoardViewProps) {
-  const board = state.boards[boardId];
+export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
+  const board = useBoardData((d) => d.boards[boardId]);
+  const cardCount = useBoardData((d) =>
+    (d.boards[boardId]?.columnIds ?? []).reduce(
+      (sum, id) => sum + (d.columns[id]?.cardIds.length ?? 0),
+      0,
+    ),
+  );
   if (!board) return null;
-
-  const columns = board.columnIds.map((id) => state.columns[id]).filter(Boolean);
-  const cardCount = columns.reduce((sum, column) => sum + column.cardIds.length, 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mx-auto w-full max-w-screen-2xl px-4 pt-6 pb-4 sm:px-6">
         <h1 className="text-2xl font-bold sm:text-3xl">{board.title}</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {columns.length} columns · {cardCount} cards
+          {board.columnIds.length} columns · {cardCount} cards
         </p>
       </div>
 
       <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-        {columns.map((column) => (
-          <Column
-            key={column.id}
-            column={column}
-            cards={column.cardIds.map((id) => state.cards[id]).filter(Boolean)}
-            labels={board.labels}
-            now={now}
-          />
+        {board.columnIds.map((columnId) => (
+          <Column key={columnId} columnId={columnId} now={now} />
         ))}
       </div>
     </div>

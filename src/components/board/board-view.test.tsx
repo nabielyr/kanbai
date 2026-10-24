@@ -1,13 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { createDemoState, DEMO_BOARD_ID } from "@/lib/storage/demo-seed";
-import { BoardView } from "./board-view";
-
-const NOW = new Date(2026, 9, 23, 9, 0);
-
-function renderDemo() {
-  return render(<BoardView state={createDemoState(NOW)} boardId={DEMO_BOARD_ID} now={NOW} />);
-}
+import { renderDemoBoard as renderDemo } from "@/test/render-board";
 
 describe("BoardView", () => {
   it("renders the board title and its columns in order", () => {

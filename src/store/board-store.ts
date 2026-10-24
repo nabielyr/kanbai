@@ -11,7 +11,8 @@ export interface BoardActions {
     options?: { position?: "top" | "bottom"; fields?: Omit<ops.CardPatch, "title"> },
   ) => string | null;
   updateCard: (cardId: string, patch: ops.CardPatch) => void;
-  deleteCard: (cardId: string) => void;
+  /** Deletes a card and returns an `undo` function that puts it back, or null if nothing was deleted. */
+  deleteCard: (cardId: string) => (() => void) | null;
   moveCard: (cardId: string, toColumnId: string, beforeCardId: string | null) => void;
   /** Returns the new column id, or null when the input was rejected. */
   addColumn: (boardId: string, title: string) => string | null;
@@ -67,7 +68,14 @@ export function createBoardStore(
           apply((d) => ops.updateCard(d, { cardId, patch, now: deps.now() }));
         },
         deleteCard: (cardId) => {
+          const before = get().data;
+          const card = before.cards[cardId];
+          const index = card ? (before.columns[card.columnId]?.cardIds.indexOf(cardId) ?? -1) : -1;
+          if (!card || index === -1) return null;
           apply((d) => ops.deleteCard(d, { cardId, now: deps.now() }));
+          return () => {
+            apply((d) => ops.restoreCard(d, { card, index, now: deps.now() }));
+          };
         },
         moveCard: (cardId, toColumnId, beforeCardId) => {
           apply((d) => ops.moveCard(d, { cardId, toColumnId, beforeCardId, now: deps.now() }));

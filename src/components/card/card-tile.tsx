@@ -24,9 +24,22 @@ interface CardTileProps {
   labels: Label[];
   isDone?: boolean;
   now: Date;
+  /** Top-right controls (e.g. the card menu). */
+  actions?: React.ReactNode;
+  /** Replaces the title, e.g. with an inline editor. */
+  titleSlot?: React.ReactNode;
+  className?: string;
 }
 
-export function CardTile({ card, labels, isDone = false, now }: CardTileProps) {
+export function CardTile({
+  card,
+  labels,
+  isDone = false,
+  now,
+  actions,
+  titleSlot,
+  className,
+}: CardTileProps) {
   const cardLabels = card.labelIds
     .map((id) => labels.find((label) => label.id === id))
     .filter((label): label is Label => Boolean(label));
@@ -38,12 +51,15 @@ export function CardTile({ card, labels, isDone = false, now }: CardTileProps) {
   return (
     <article
       className={cn(
-        "bg-card text-card-foreground shadow-soft hover:shadow-lift rounded-lg border border-l-4 p-3 transition-shadow",
+        "group/card bg-card text-card-foreground shadow-soft hover:shadow-lift relative rounded-lg border border-l-4 p-3 transition-shadow",
         dueEdgeClass[dueStatus],
+        className,
       )}
     >
+      {actions && <div className="absolute top-2 right-2">{actions}</div>}
+
       {cardLabels.length > 0 && (
-        <ul className="mb-2 flex flex-wrap gap-1" aria-label="Labels">
+        <ul className={cn("mb-2 flex flex-wrap gap-1", actions && "pr-7")} aria-label="Labels">
           {cardLabels.map((label) => (
             <li
               key={label.id}
@@ -58,14 +74,17 @@ export function CardTile({ card, labels, isDone = false, now }: CardTileProps) {
         </ul>
       )}
 
-      <h3
-        className={cn(
-          "font-sans text-sm leading-snug font-semibold tracking-normal",
-          isDone && "text-muted-foreground",
-        )}
-      >
-        {card.title}
-      </h3>
+      {titleSlot ?? (
+        <h3
+          className={cn(
+            "font-sans text-sm leading-snug font-semibold tracking-normal",
+            actions && "pr-7",
+            isDone && "text-muted-foreground",
+          )}
+        >
+          {card.title}
+        </h3>
+      )}
 
       {card.description && (
         <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{card.description}</p>

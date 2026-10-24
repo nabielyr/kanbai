@@ -1,15 +1,14 @@
+"use client";
+
 import { CircleCheckBig } from "lucide-react";
-import { CardTile } from "@/components/card/card-tile";
-import type { Card, Column as ColumnModel, Label } from "@/lib/domain/types";
+import { AddCard } from "@/components/card/add-card";
+import { BoardCard } from "@/components/card/board-card";
+import { useBoardData } from "@/store/board-store-provider";
 
-interface ColumnProps {
-  column: ColumnModel;
-  cards: Card[];
-  labels: Label[];
-  now: Date;
-}
+export function Column({ columnId, now }: { columnId: string; now: Date }) {
+  const column = useBoardData((d) => d.columns[columnId]);
+  if (!column) return null;
 
-export function Column({ column, cards, labels, now }: ColumnProps) {
   const headingId = `column-${column.id}-title`;
 
   return (
@@ -25,22 +24,21 @@ export function Column({ column, cards, labels, now }: ColumnProps) {
           {column.title}
         </h2>
         <span className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-          {cards.length}
+          {column.cardIds.length}
         </span>
       </header>
 
-      <ol className="flex min-h-16 flex-col gap-2 overflow-y-auto px-2 pb-3">
-        {cards.map((card) => (
-          <li key={card.id}>
-            <CardTile card={card} labels={labels} isDone={column.isDone} now={now} />
+      <ol className="flex min-h-4 flex-col gap-2 overflow-y-auto px-2 pb-1">
+        {column.cardIds.map((cardId) => (
+          <li key={cardId}>
+            <BoardCard cardId={cardId} now={now} />
           </li>
         ))}
-        {cards.length === 0 && (
-          <li className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-xs">
-            No cards yet
-          </li>
-        )}
       </ol>
+
+      <div className="px-2 pt-1 pb-2">
+        <AddCard columnId={column.id} columnTitle={column.title} />
+      </div>
     </section>
   );
 }

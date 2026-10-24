@@ -208,6 +208,28 @@ export function deleteCard(
 }
 
 /**
+ * Puts a previously deleted card back at `index` in its column (used by "Undo").
+ * Ignored if the card already exists or its column has been deleted meanwhile.
+ */
+export function restoreCard(
+  state: PersistedState,
+  input: { card: Card; index: number; now: string },
+): PersistedState {
+  const { card } = input;
+  const column = state.columns[card.columnId];
+  if (state.cards[card.id] || !column || column.boardId !== card.boardId) return state;
+
+  const index = Math.max(0, Math.min(Math.trunc(input.index), column.cardIds.length));
+  const cardIds = [...column.cardIds.slice(0, index), card.id, ...column.cardIds.slice(index)];
+  return {
+    ...state,
+    cards: { ...state.cards, [card.id]: card },
+    columns: { ...state.columns, [column.id]: { ...column, cardIds } },
+    boards: touchBoard(state, card.boardId, input.now),
+  };
+}
+
+/**
  * Moves a card into `toColumnId`, placing it before `beforeCardId` (or at the end when null).
  * Positioning by neighbour id instead of index keeps drops correct even when a search or
  * filter hides some cards in the target column.
