@@ -66,6 +66,24 @@ export function renameColumn(
   };
 }
 
+/** Marks a column as a "done" column (its cards never show due-date warnings). */
+export function setColumnDone(
+  state: PersistedState,
+  input: { columnId: string; isDone: boolean; now: string },
+): PersistedState {
+  const column = state.columns[input.columnId];
+  if (!column || Boolean(column.isDone) === input.isDone) return state;
+
+  const next: Column = { ...column };
+  if (input.isDone) next.isDone = true;
+  else delete next.isDone;
+  return {
+    ...state,
+    columns: { ...state.columns, [column.id]: next },
+    boards: touchBoard(state, column.boardId, input.now),
+  };
+}
+
 /** Deletes a column together with all of its cards. */
 export function deleteColumn(
   state: PersistedState,

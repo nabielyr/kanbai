@@ -10,6 +10,7 @@ import {
   moveColumn,
   renameColumn,
   restoreCard,
+  setColumnDone,
   updateCard,
 } from "./board-ops";
 import { findIntegrityIssues } from "./integrity";
@@ -314,5 +315,20 @@ describe("restoreCard", () => {
     expect(restoreCard(state, { card, index: 0, now: NOW })).toBe(state);
     const noColumn = deleteColumn(state, { columnId: DOING, now: NOW });
     expect(restoreCard(noColumn, { card, index: 0, now: NOW })).toBe(noColumn);
+  });
+});
+
+describe("setColumnDone", () => {
+  it("marks and unmarks a done column", () => {
+    const marked = setColumnDone(state, { columnId: DOING, isDone: true, now: NOW });
+    expect(marked.columns[DOING].isDone).toBe(true);
+    const unmarked = setColumnDone(marked, { columnId: DOING, isDone: false, now: NOW });
+    expect(unmarked.columns[DOING]).not.toHaveProperty("isDone");
+    expectConsistent(unmarked);
+  });
+
+  it("returns the same state when nothing changes", () => {
+    expect(setColumnDone(state, { columnId: DONE, isDone: true, now: NOW })).toBe(state);
+    expect(setColumnDone(state, { columnId: TODO, isDone: false, now: NOW })).toBe(state);
   });
 });

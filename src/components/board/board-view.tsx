@@ -1,5 +1,6 @@
 "use client";
 
+import { AddColumn } from "@/components/column/add-column";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
 
@@ -26,6 +27,7 @@ export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
         {board.columnIds.map((columnId) => (
           <Column key={columnId} columnId={columnId} now={now} />
         ))}
+        <AddColumn boardId={board.id} />
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ export interface BoardActions {
   /** Returns the new column id, or null when the input was rejected. */
   addColumn: (boardId: string, title: string) => string | null;
   renameColumn: (columnId: string, title: string) => void;
+  setColumnDone: (columnId: string, isDone: boolean) => void;
   deleteColumn: (columnId: string) => void;
   moveColumn: (columnId: string, toIndex: number) => void;
   /** Replaces everything, e.g. after loading from storage or resetting the demo. */
@@ -87,6 +88,9 @@ export function createBoardStore(
         },
         renameColumn: (columnId, title) => {
           apply((d) => ops.renameColumn(d, { columnId, title, now: deps.now() }));
+        },
+        setColumnDone: (columnId, isDone) => {
+          apply((d) => ops.setColumnDone(d, { columnId, isDone, now: deps.now() }));
         },
         deleteColumn: (columnId) => {
           apply((d) => ops.deleteColumn(d, { columnId, now: deps.now() }));
