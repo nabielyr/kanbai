@@ -46,4 +46,25 @@ describe("board drag and drop wiring", () => {
       "Buy a domain name now",
     );
   });
+
+  it("lets columns be picked up by their grip handle", async () => {
+    const user = userEvent.setup();
+    const { data } = renderDemoBoard();
+    const before = data();
+
+    const grip = screen.getByRole("button", { name: "Move column “In Progress”" });
+    expect(grip).toHaveAttribute("aria-roledescription", "draggable column");
+    grip.focus();
+    await user.keyboard(" ");
+    // jsdom has no layout, so "is over …" may immediately replace the "Picked up" announcement.
+    expect(
+      await screen.findByText(/^(Picked up column “In Progress”|Column “In Progress” is over)/),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(
+      await screen.findByText(/Cancelled. Column “In Progress” was put back/),
+    ).toBeInTheDocument();
+    expect(data()).toBe(before);
+  });
 });

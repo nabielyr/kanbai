@@ -17,7 +17,11 @@ import {
   type DragStartEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import {
   createContext,
   useCallback,
@@ -65,10 +69,12 @@ export function BoardDnd({
   children: React.ReactNode;
 }) {
   const storeApi = useBoardStoreApi();
-  const { moveCard } = useBoardActions();
+  const { moveCard, moveColumn } = useBoardActions();
+  const columnIds = useBoardData((d) => d.boards[boardId]?.columnIds ?? EMPTY);
   const [preview, setPreview] = useState<ColumnItems | null>(null);
   const previewRef = useRef<ColumnItems | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const lastOverId = useRef<UniqueIdentifier | null>(null);
   const recentlyMovedColumn = useRef(false);
 
@@ -103,6 +109,16 @@ export function BoardDnd({
    * Based on dnd-kit's multiple-containers example.
    */
   const collisionDetection: CollisionDetection = useCallback((args) => {
+    if (args.active.data.current?.type === "column") {
+      // Columns only ever swap places with other columns.
+      return closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter(
+          (container) => container.data.current?.type === "column",
+        ),
+      });
+    }
+
     const items = previewRef.current;
     if (!items) return closestCorners(args);
 
@@ -132,10 +148,15 @@ export function BoardDnd({
   function reset() {
     updatePreview(null);
     setActiveCardId(null);
+    setActiveColumnId(null);
     lastOverId.current = null;
   }
 
   function handleDragStart({ active }: DragStartEvent) {
+    if (active.data.current?.type === "column") {
+      setActiveColumnId(String(active.id));
+      return;
+    }
     if (active.data.current?.type !== "card") return;
     setActiveCardId(String(active.id));
     updatePreview(snapshot());
@@ -157,6 +178,18 @@ export function BoardDnd({
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
+    if (active.data.current?.type === "column") {
+      if (over) {
+        const data = storeApi.getState().data;
+        const overId = String(over.id);
+        const overColumnId = data.columns[overId] ? overId : data.cards[overId]?.columnId;
+        const toIndex = overColumnId ? columnIds.indexOf(overColumnId) : -1;
+        if (toIndex !== -1) moveColumn(String(active.id), toIndex);
+      }
+      reset();
+      return;
+    }
+
     const items = previewRef.current;
     if (items && over) {
       const activeId = String(active.id);
@@ -168,23 +201,38 @@ export function BoardDnd({
   }
 
   const announcements: Announcements = useMemo(() => {
-    const cardTitle = (id: UniqueIdentifier) =>
-      `“${storeApi.getState().data.cards[String(id)]?.title ?? "card"}”`;
+    const describe = (id: UniqueIdentifier) => {
+      const data = storeApi.getState().data;
+      const card = data.cards[String(id)];
+      if (card) return `card “${card.title}”`;
+      const column = data.columns[String(id)];
+      return column ? `column “${column.title}”` : "item";
+    };
+    const capitalized = (id: UniqueIdentifier) => {
+      const text = describe(id);
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    };
     const columnTitle = (id: UniqueIdentifier) => {
       const columnId = previewRef.current ? findColumn(previewRef.current, String(id)) : undefined;
       return storeApi.getState().data.columns[columnId ?? String(id)]?.title ?? "a column";
     };
+    const isColumn = (id: UniqueIdentifier) =>
+      Boolean(storeApi.getState().data.columns[String(id)]);
     return {
-      onDragStart: ({ active }) => `Picked up card ${cardTitle(active.id)}.`,
-      onDragOver: ({ active, over }) =>
-        over
-          ? `Card ${cardTitle(active.id)} is over ${columnTitle(over.id)}.`
-          : `Card ${cardTitle(active.id)} is not over a column.`,
-      onDragEnd: ({ active, over }) =>
-        over
-          ? `Dropped card ${cardTitle(active.id)} in ${columnTitle(over.id)}.`
-          : `Dropped card ${cardTitle(active.id)}.`,
-      onDragCancel: ({ active }) => `Cancelled. Card ${cardTitle(active.id)} was put back.`,
+      onDragStart: ({ active }) => `Picked up ${describe(active.id)}.`,
+      onDragOver: ({ active, over }) => {
+        if (!over) return `${capitalized(active.id)} is not over a drop target.`;
+        return isColumn(active.id)
+          ? `${capitalized(active.id)} is over ${describe(over.id)}.`
+          : `${capitalized(active.id)} is over ${columnTitle(over.id)}.`;
+      },
+      onDragEnd: ({ active, over }) => {
+        if (!over) return `Dropped ${describe(active.id)}.`;
+        return isColumn(active.id)
+          ? `Moved ${describe(active.id)}.`
+          : `Dropped ${describe(active.id)} in ${columnTitle(over.id)}.`;
+      },
+      onDragCancel: ({ active }) => `Cancelled. ${capitalized(active.id)} was put back.`,
     };
   }, [storeApi]);
 
@@ -198,9 +246,14 @@ export function BoardDnd({
       onDragCancel={reset}
       accessibility={{ announcements, screenReaderInstructions }}
     >
-      <PreviewContext.Provider value={preview}>{children}</PreviewContext.Provider>
+      <PreviewContext.Provider value={preview}>
+        <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+          {children}
+        </SortableContext>
+      </PreviewContext.Provider>
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}>
         {activeCardId ? <CardDragPreview cardId={activeCardId} now={now} /> : null}
+        {activeColumnId ? <ColumnDragPreview columnId={activeColumnId} now={now} /> : null}
       </DragOverlay>
     </DndContext>
   );
@@ -218,5 +271,36 @@ function CardDragPreview({ cardId, now }: { cardId: string; now: Date }) {
       now={now}
       className="shadow-lift hover:shadow-lift scale-[1.03] rotate-2 cursor-grabbing"
     />
+  );
+}
+
+/** A compact copy of the column that follows the pointer while reordering columns. */
+function ColumnDragPreview({ columnId, now }: { columnId: string; now: Date }) {
+  const column = useBoardData((d) => d.columns[columnId]);
+  const cards = useBoardData((d) => d.cards);
+  const labels = useBoardData((d) => (column ? d.boards[column.boardId]?.labels : undefined));
+  if (!column) return null;
+  return (
+    <div className="bg-column shadow-lift w-72 rotate-1 cursor-grabbing rounded-xl p-2">
+      <p className="font-heading px-2 pt-1 pb-2 text-sm font-semibold">
+        {column.title}{" "}
+        <span className="text-muted-foreground font-sans text-xs">{column.cardIds.length}</span>
+      </p>
+      <div className="flex max-h-[60vh] flex-col gap-2 overflow-hidden">
+        {column.cardIds
+          .slice(0, 4)
+          .map((id) =>
+            cards[id] ? (
+              <CardTile
+                key={id}
+                card={cards[id]}
+                labels={labels ?? []}
+                isDone={column.isDone}
+                now={now}
+              />
+            ) : null,
+          )}
+      </div>
+    </div>
   );
 }

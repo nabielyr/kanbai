@@ -25,7 +25,16 @@ import {
 import type { Column } from "@/lib/domain/types";
 import { useBoardActions } from "@/store/board-store-provider";
 
-export function ColumnHeader({ column, headingId }: { column: Column; headingId: string }) {
+export function ColumnHeader({
+  column,
+  headingId,
+  dragHandle,
+}: {
+  column: Column;
+  headingId: string;
+  /** Grip used to reorder the column (rendered by the sortable column). */
+  dragHandle?: React.ReactNode;
+}) {
   const { renameColumn, setColumnDone, deleteColumn } = useBoardActions();
   const [renaming, setRenaming] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -39,7 +48,8 @@ export function ColumnHeader({ column, headingId }: { column: Column; headingId:
   }
 
   return (
-    <header className="flex items-center gap-2 px-3 pt-3 pb-2">
+    <header className="flex items-center gap-1.5 px-2 pt-3 pb-2">
+      {!renaming && dragHandle}
       {column.isDone && (
         <CircleCheckBig
           className="text-label-mint-foreground size-4 shrink-0"
