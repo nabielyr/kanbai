@@ -3,6 +3,7 @@
 import { AddColumn } from "@/components/column/add-column";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
+import { BoardDnd } from "./dnd/board-dnd";
 
 export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
   const board = useBoardData((d) => d.boards[boardId]);
@@ -23,12 +24,14 @@ export function BoardView({ boardId, now }: { boardId: string; now: Date }) {
         </p>
       </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-        {board.columnIds.map((columnId) => (
-          <Column key={columnId} columnId={columnId} now={now} />
-        ))}
-        <AddColumn boardId={board.id} />
-      </div>
+      <BoardDnd boardId={board.id} now={now}>
+        <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+          {board.columnIds.map((columnId) => (
+            <Column key={columnId} columnId={columnId} now={now} />
+          ))}
+          <AddColumn boardId={board.id} />
+        </div>
+      </BoardDnd>
     </div>
   );
 }

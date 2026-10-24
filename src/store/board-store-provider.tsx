@@ -28,7 +28,8 @@ export function BoardStoreProvider({
   return <BoardStoreContext.Provider value={store}>{children}</BoardStoreContext.Provider>;
 }
 
-function useBoardStoreApi(): BoardStore {
+/** The raw store, for reading state imperatively in event handlers (no re-renders). */
+export function useBoardStoreApi(): BoardStore {
   const store = useContext(BoardStoreContext);
   if (!store) throw new Error("Board store hooks must be used inside <BoardStoreProvider>");
   return store;
