@@ -3,6 +3,7 @@
 import { AddColumn } from "@/components/column/add-column";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
+import { BoardTitle } from "./board-title";
 import { BoardDnd } from "./dnd/board-dnd";
 
 export function BoardView({
@@ -16,23 +17,12 @@ export function BoardView({
   toolbar?: React.ReactNode;
 }) {
   const board = useBoardData((d) => d.boards[boardId]);
-  const cardCount = useBoardData((d) =>
-    (d.boards[boardId]?.columnIds ?? []).reduce(
-      (sum, id) => sum + (d.columns[id]?.cardIds.length ?? 0),
-      0,
-    ),
-  );
   if (!board) return null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-4 sm:px-6">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold sm:text-3xl">{board.title}</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {board.columnIds.length} columns · {cardCount} cards
-          </p>
-        </div>
+        <BoardTitle boardId={board.id} />
         {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
       </div>
 

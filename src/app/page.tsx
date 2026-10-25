@@ -18,11 +18,16 @@ export default function Home() {
         <p className="text-muted-foreground mt-4 max-w-xl text-lg">
           A kanban board with an AI that chunks overwhelming tasks into small, doable steps.
         </p>
-        <Button asChild size="lg" className="mt-8">
-          <Link href="/demo">
-            Try the demo <ArrowRight />
-          </Link>
-        </Button>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Button asChild size="lg">
+            <Link href="/demo">
+              Try the demo <ArrowRight />
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/boards">Start my own board</Link>
+          </Button>
+        </div>
       </main>
     </>
   );

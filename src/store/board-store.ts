@@ -4,6 +4,12 @@ import { createId } from "@/lib/domain/ids";
 import type { PersistedState } from "@/lib/domain/types";
 
 export interface BoardActions {
+  /** Creates a board with default columns and makes it active. Returns its id, or null. */
+  createBoard: (title: string) => string | null;
+  renameBoard: (boardId: string, title: string) => void;
+  /** Deletes a board with all of its columns and cards. */
+  deleteBoard: (boardId: string) => void;
+  setActiveBoard: (boardId: string) => void;
   /** Returns the new card id, or null when the input was rejected (e.g. empty title). */
   addCard: (
     columnId: string,
@@ -58,6 +64,23 @@ export function createBoardStore(
     return {
       data: initialData,
       actions: {
+        createBoard: (title) => {
+          const id = deps.createId();
+          const columnIds = ops.DEFAULT_COLUMN_TITLES.map(() => deps.createId());
+          const created = apply((d) =>
+            ops.createBoard(d, { id, title, columnIds, now: deps.now() }),
+          );
+          return created ? id : null;
+        },
+        renameBoard: (boardId, title) => {
+          apply((d) => ops.renameBoard(d, { boardId, title, now: deps.now() }));
+        },
+        deleteBoard: (boardId) => {
+          apply((d) => ops.deleteBoard(d, { boardId }));
+        },
+        setActiveBoard: (boardId) => {
+          apply((d) => ops.setActiveBoard(d, { boardId }));
+        },
         addCard: (columnId, title, options) => {
           const id = deps.createId();
           const added = apply((d) =>

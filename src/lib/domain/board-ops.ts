@@ -1,4 +1,11 @@
-import type { Board, Card, Column, PersistedState } from "./types";
+import {
+  STATE_VERSION,
+  type Board,
+  type Card,
+  type Column,
+  type Label,
+  type PersistedState,
+} from "./types";
 
 // Pure, immutable operations on the normalized state.
 // Callers pass ids and timestamps in, so every operation is deterministic and easy to test.
@@ -28,6 +35,125 @@ function insertBefore(ids: string[], id: string, beforeId: string | null): strin
   const index = beforeId === null ? -1 : ids.indexOf(beforeId);
   if (index === -1) return [...ids, id];
   return [...ids.slice(0, index), id, ...ids.slice(index)];
+}
+
+// ---------- Boards ----------
+
+export const DEFAULT_COLUMN_TITLES = ["To Do", "In Progress", "Done"] as const;
+
+/** Starter labels for a new board (label ids are made unique per board). */
+const DEFAULT_LABELS: Omit<Label, "id">[] = [
+  { name: "feature", color: "sky" },
+  { name: "bug", color: "rose" },
+  { name: "design", color: "lilac" },
+  { name: "idea", color: "lemon" },
+];
+
+export function createEmptyState(): PersistedState {
+  return {
+    version: STATE_VERSION,
+    boards: {},
+    columns: {},
+    cards: {},
+    boardOrder: [],
+    activeBoardId: null,
+  };
+}
+
+/**
+ * Adds a board with the default To Do / In Progress / Done columns (Done is a "done" column)
+ * and makes it the active board. `columnIds` must provide one id per default column.
+ */
+export function createBoard(
+  state: PersistedState,
+  input: { id: string; title: string; columnIds: string[]; now: string },
+): PersistedState {
+  const title = cleanTitle(input.title);
+  const ids = input.columnIds;
+  if (
+    !title ||
+    state.boards[input.id] ||
+    ids.length !== DEFAULT_COLUMN_TITLES.length ||
+    new Set(ids).size !== ids.length ||
+    ids.some((id) => state.columns[id])
+  ) {
+    return state;
+  }
+
+  const columns = { ...state.columns };
+  DEFAULT_COLUMN_TITLES.forEach((columnTitle, i) => {
+    columns[ids[i]] = {
+      id: ids[i],
+      boardId: input.id,
+      title: columnTitle,
+      cardIds: [],
+      ...(i === DEFAULT_COLUMN_TITLES.length - 1 ? { isDone: true } : {}),
+    };
+  });
+
+  const board: Board = {
+    id: input.id,
+    title,
+    columnIds: [...ids],
+    labels: DEFAULT_LABELS.map((label) => ({ ...label, id: `${input.id}-label-${label.name}` })),
+    createdAt: input.now,
+    updatedAt: input.now,
+  };
+
+  return {
+    ...state,
+    boards: { ...state.boards, [board.id]: board },
+    columns,
+    boardOrder: [...state.boardOrder, board.id],
+    activeBoardId: board.id,
+  };
+}
+
+export function renameBoard(
+  state: PersistedState,
+  input: { boardId: string; title: string; now: string },
+): PersistedState {
+  const board = state.boards[input.boardId];
+  const title = cleanTitle(input.title);
+  if (!board || !title || title === board.title) return state;
+  return {
+    ...state,
+    boards: { ...state.boards, [board.id]: { ...board, title, updatedAt: input.now } },
+  };
+}
+
+/** Deletes a board with all its columns and cards; the next (or previous) board becomes active. */
+export function deleteBoard(state: PersistedState, input: { boardId: string }): PersistedState {
+  const board = state.boards[input.boardId];
+  if (!board) return state;
+
+  const columns = { ...state.columns };
+  const cards = { ...state.cards };
+  for (const columnId of board.columnIds) {
+    for (const cardId of columns[columnId]?.cardIds ?? []) delete cards[cardId];
+    delete columns[columnId];
+  }
+
+  const index = state.boardOrder.indexOf(board.id);
+  const boardOrder = state.boardOrder.filter((id) => id !== board.id);
+  const activeBoardId =
+    state.activeBoardId === board.id
+      ? (boardOrder[index] ?? boardOrder[index - 1] ?? null)
+      : state.activeBoardId;
+
+  return {
+    ...state,
+    boards: withoutKey(state.boards, board.id),
+    columns,
+    cards,
+    boardOrder,
+    activeBoardId,
+  };
+}
+
+export function setActiveBoard(state: PersistedState, input: { boardId: string }): PersistedState {
+  if (!state.boards[input.boardId] || state.activeBoardId === input.boardId) return state;
+  return { ...state, activeBoardId: input.boardId };
 }
 
 // ---------- Columns ----------
