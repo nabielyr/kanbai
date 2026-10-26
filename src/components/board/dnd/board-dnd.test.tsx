@@ -7,7 +7,7 @@ import { renderDemoBoard } from "@/test/render-board";
 // lib/domain/drag.test.ts. Here we check the wiring: draggables, keyboard sensor, guards.
 
 const card = (title: string) =>
-  screen.getByRole("button", { name: title, description: /pick up a card/i });
+  screen.getByRole("button", { name: title, description: /press space to pick it up/i });
 
 describe("board drag and drop wiring", () => {
   it("exposes every card as a keyboard-accessible draggable", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { AddColumn } from "@/components/column/add-column";
+import { CardDialogProvider } from "@/components/card/card-dialog-context";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
 import { BoardTitle } from "./board-title";
@@ -26,14 +27,16 @@ export function BoardView({
         {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
       </div>
 
-      <BoardDnd boardId={board.id} now={now}>
-        <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-          {board.columnIds.map((columnId) => (
-            <Column key={columnId} columnId={columnId} now={now} />
-          ))}
-          <AddColumn boardId={board.id} />
-        </div>
-      </BoardDnd>
+      <CardDialogProvider>
+        <BoardDnd boardId={board.id} now={now}>
+          <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+            {board.columnIds.map((columnId) => (
+              <Column key={columnId} columnId={columnId} now={now} />
+            ))}
+            <AddColumn boardId={board.id} />
+          </div>
+        </BoardDnd>
+      </CardDialogProvider>
     </div>
   );
 }

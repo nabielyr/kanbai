@@ -6,6 +6,7 @@ import {
   DndContext,
   DragOverlay,
   getFirstCollision,
+  KeyboardCode,
   pointerWithin,
   rectIntersection,
   useSensor,
@@ -55,8 +56,8 @@ export function useColumnCardIds(columnId: string): string[] {
 
 const screenReaderInstructions = {
   draggable:
-    "To pick up a card, press Space or Enter. Use the arrow keys to move it, " +
-    "Space or Enter to drop it, or Escape to cancel.",
+    "Press Enter to open. To move it, press Space to pick it up, use the arrow keys, " +
+    "then Space or Enter to drop it, or Escape to cancel.",
 };
 
 export function BoardDnd({
@@ -82,7 +83,15 @@ export function BoardDnd({
     useSensor(SmartMouseSensor, { activationConstraint: { distance: 5 } }),
     // Long-press on touch screens so normal swiping still scrolls the board.
     useSensor(SmartTouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
-    useSensor(SmartKeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(SmartKeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      // Space picks up; Enter is left free to open the card.
+      keyboardCodes: {
+        start: [KeyboardCode.Space],
+        cancel: [KeyboardCode.Esc],
+        end: [KeyboardCode.Space, KeyboardCode.Enter],
+      },
+    }),
   );
 
   const updatePreview = useCallback((items: ColumnItems | null) => {

@@ -1,3 +1,4 @@
+import { Flame, SignalHigh, SignalLow, SignalMedium, type LucideIcon } from "lucide-react";
 import type { DueStatus } from "@/lib/domain/due";
 import type { LabelColor, Priority } from "@/lib/domain/types";
 
@@ -35,4 +36,11 @@ export const priorityMeta: Record<Priority, { label: string; className: string }
   medium: { label: "Medium", className: "text-label-sky-foreground" },
   high: { label: "High", className: "text-label-peach-foreground" },
   urgent: { label: "Urgent", className: "text-label-rose-foreground" },
+};
+
+export const priorityIcon: Record<Priority, LucideIcon> = {
+  low: SignalLow,
+  medium: SignalMedium,
+  high: SignalHigh,
+  urgent: Flame,
 };

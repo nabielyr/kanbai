@@ -1,23 +1,15 @@
-import {
-  CalendarClock,
-  CircleCheck,
-  Flame,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-} from "lucide-react";
+import { CalendarClock, CircleCheck } from "lucide-react";
 import { getChecklistProgress } from "@/lib/domain/checklist";
 import { getDueLabel, getDueStatus } from "@/lib/domain/due";
-import type { Card, Label, Priority } from "@/lib/domain/types";
+import type { Card, Label } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
-import { dueChipClass, dueEdgeClass, labelColorClass, priorityMeta } from "./card-styles";
-
-const priorityIcon: Record<Priority, typeof Flame> = {
-  low: SignalLow,
-  medium: SignalMedium,
-  high: SignalHigh,
-  urgent: Flame,
-};
+import {
+  dueChipClass,
+  dueEdgeClass,
+  labelColorClass,
+  priorityIcon,
+  priorityMeta,
+} from "./card-styles";
 
 interface CardTileProps {
   card: Card;
