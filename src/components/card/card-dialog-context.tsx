@@ -12,7 +12,7 @@ interface CardDialogContextValue {
 const CardDialogContext = createContext<CardDialogContextValue | null>(null);
 
 /** One card-detail dialog per board; any card can ask to open it. */
-export function CardDialogProvider({ children }: { children: React.ReactNode }) {
+export function CardDialogProvider({ children, now }: { children: React.ReactNode; now: Date }) {
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const openCard = useCallback((cardId: string) => setOpenCardId(cardId), []);
   const closeCard = useCallback(() => setOpenCardId(null), []);
@@ -24,7 +24,7 @@ export function CardDialogProvider({ children }: { children: React.ReactNode }) 
   return (
     <CardDialogContext.Provider value={value}>
       {children}
-      <CardDialog cardId={openCardId} onClose={closeCard} />
+      <CardDialog cardId={openCardId} now={now} onClose={closeCard} />
     </CardDialogContext.Provider>
   );
 }

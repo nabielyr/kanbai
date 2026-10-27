@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDueLabel, getDueStatus } from "./due";
+import { getDueLabel, getDuePresets, getDueStatus, isValidDueDate } from "./due";
 
 // 23 Oct 2026, late evening local time — a classic spot for timezone off-by-one bugs.
 const NOW = new Date(2026, 9, 23, 23, 45);
@@ -42,5 +42,38 @@ describe("getDueLabel", () => {
 
   it("shows a plain date for done cards", () => {
     expect(getDueLabel("2026-10-19", NOW, true)).toBe("Oct 19");
+  });
+});
+
+describe("isValidDueDate", () => {
+  it.each([
+    ["2026-10-23", true],
+    ["2028-02-29", true],
+    ["2026-02-29", false],
+    ["2026-02-30", false],
+    ["2026-13-01", false],
+    ["2026-1-5", false],
+    ["2026-10-23T00:00", false],
+    ["", false],
+  ])("%s → %s", (value, expected) => {
+    expect(isValidDueDate(value)).toBe(expected);
+  });
+});
+
+describe("getDuePresets", () => {
+  it("offers today, tomorrow and next week in the local calendar", () => {
+    expect(getDuePresets(NOW)).toEqual([
+      { label: "Today", dueDate: "2026-10-23" },
+      { label: "Tomorrow", dueDate: "2026-10-24" },
+      { label: "Next week", dueDate: "2026-10-30" },
+    ]);
+  });
+
+  it("crosses month and year boundaries", () => {
+    expect(getDuePresets(new Date(2026, 11, 31, 22, 0)).map((p) => p.dueDate)).toEqual([
+      "2026-12-31",
+      "2027-01-01",
+      "2027-01-07",
+    ]);
   });
 });

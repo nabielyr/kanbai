@@ -15,16 +15,19 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "@/lib/domain/board-ops
 import { PRIORITIES, type Priority } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
+import { CardDueDate } from "./card-due-date";
 import { CardLabels } from "./card-labels";
 import { priorityIcon, priorityMeta } from "./card-styles";
 import { useDeleteCard } from "./use-delete-card";
 
 interface CardDialogProps {
   cardId: string | null;
+  /** Clock for due-date status, shared with the board. */
+  now: Date;
   onClose: () => void;
 }
 
-export function CardDialog({ cardId, onClose }: CardDialogProps) {
+export function CardDialog({ cardId, now, onClose }: CardDialogProps) {
   // Keep showing the last card while the close animation runs.
   const [shownCardId, setShownCardId] = useState(cardId);
   if (cardId && cardId !== shownCardId) setShownCardId(cardId);
@@ -52,6 +55,7 @@ export function CardDialog({ cardId, onClose }: CardDialogProps) {
           <CardDialogBody
             key={shownCardId}
             cardId={shownCardId}
+            now={now}
             commitRef={commitRef}
             onRequestClose={() => {
               commitRef.current?.();
@@ -66,10 +70,12 @@ export function CardDialog({ cardId, onClose }: CardDialogProps) {
 
 function CardDialogBody({
   cardId,
+  now,
   commitRef,
   onRequestClose,
 }: {
   cardId: string;
+  now: Date;
   commitRef: React.RefObject<(() => void) | null>;
   onRequestClose: () => void;
 }) {
@@ -145,6 +151,8 @@ function CardDialogBody({
       />
 
       <CardLabels cardId={cardId} />
+
+      <CardDueDate cardId={cardId} now={now} />
 
       <div className="space-y-2">
         <label htmlFor={`card-${cardId}-description`} className="text-sm font-semibold">

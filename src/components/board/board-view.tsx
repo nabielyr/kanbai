@@ -27,7 +27,7 @@ export function BoardView({
         {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
       </div>
 
-      <CardDialogProvider>
+      <CardDialogProvider now={now}>
         <BoardDnd boardId={board.id} now={now}>
           <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
             {board.columnIds.map((columnId) => (

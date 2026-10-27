@@ -242,6 +242,28 @@ describe("cards", () => {
     expectConsistent(next);
   });
 
+  it("sets and clears a due date, rejecting invalid dates", () => {
+    const next = updateCard(state, {
+      cardId: "demo-card-hosting",
+      patch: { dueDate: "2026-11-05" },
+      now: NOW,
+    });
+    expect(next.cards["demo-card-hosting"].dueDate).toBe("2026-11-05");
+
+    const cleared = updateCard(next, {
+      cardId: "demo-card-hosting",
+      patch: { dueDate: null },
+      now: NOW,
+    });
+    expect(cleared.cards["demo-card-hosting"].dueDate).toBeNull();
+
+    for (const dueDate of ["2026-02-30", "tomorrow", ""]) {
+      expect(updateCard(state, { cardId: "demo-card-hosting", patch: { dueDate }, now: NOW })).toBe(
+        state,
+      );
+    }
+  });
+
   it("deletes a card from its column", () => {
     const next = deleteCard(state, { cardId: "demo-card-hero", now: NOW });
     expect(next.cards["demo-card-hero"]).toBeUndefined();

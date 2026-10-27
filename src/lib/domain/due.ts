@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
+import { addDays, differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
 
 export type DueStatus = "none" | "overdue" | "today" | "soon" | "later";
 
@@ -9,6 +9,29 @@ export const DUE_SOON_DAYS = 2;
 function parseDueDate(dueDate: string): Date | null {
   const date = parseISO(dueDate);
   return isValid(date) ? date : null;
+}
+
+const DUE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** True for a real calendar date in `yyyy-MM-dd` form (rejects e.g. `2026-02-30`). */
+export function isValidDueDate(value: string): boolean {
+  if (!DUE_DATE_PATTERN.test(value)) return false;
+  const date = parseDueDate(value);
+  return date !== null && format(date, "yyyy-MM-dd") === value;
+}
+
+/** Formats a local date as a due date (`yyyy-MM-dd`). */
+export function toDueDate(date: Date): string {
+  return format(date, "yyyy-MM-dd");
+}
+
+/** Quick picks for the due date picker, relative to `now`. */
+export function getDuePresets(now: Date): { label: string; dueDate: string }[] {
+  return [
+    { label: "Today", dueDate: toDueDate(now) },
+    { label: "Tomorrow", dueDate: toDueDate(addDays(now, 1)) },
+    { label: "Next week", dueDate: toDueDate(addDays(now, 7)) },
+  ];
 }
 
 /**

@@ -1,3 +1,4 @@
+import { isValidDueDate } from "./due";
 import {
   LABEL_COLORS,
   STATE_VERSION,
@@ -435,6 +436,9 @@ export function updateCard(
   }
   if (patch.description !== undefined) {
     patch.description = patch.description.slice(0, MAX_DESCRIPTION_LENGTH);
+  }
+  if (patch.dueDate !== undefined && patch.dueDate !== null && !isValidDueDate(patch.dueDate)) {
+    return state;
   }
   if (patch.labelIds !== undefined) {
     const known = new Set(state.boards[card.boardId]?.labels.map((l) => l.id));
