@@ -1,9 +1,11 @@
 import {
+  LABEL_COLORS,
   STATE_VERSION,
   type Board,
   type Card,
   type Column,
   type Label,
+  type LabelColor,
   type PersistedState,
 } from "./types";
 
@@ -154,6 +156,120 @@ export function deleteBoard(state: PersistedState, input: { boardId: string }): 
 export function setActiveBoard(state: PersistedState, input: { boardId: string }): PersistedState {
   if (!state.boards[input.boardId] || state.activeBoardId === input.boardId) return state;
   return { ...state, activeBoardId: input.boardId };
+}
+
+// ---------- Labels ----------
+
+export const MAX_LABEL_NAME_LENGTH = 30;
+export const MAX_LABELS_PER_BOARD = 50;
+
+function cleanLabelName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").slice(0, MAX_LABEL_NAME_LENGTH);
+}
+
+/** Label names are unique per board, ignoring case. */
+function isLabelNameTaken(board: Board, name: string, exceptId?: string): boolean {
+  const lower = name.toLowerCase();
+  return board.labels.some((l) => l.id !== exceptId && l.name.toLowerCase() === lower);
+}
+
+export function addLabel(
+  state: PersistedState,
+  input: { boardId: string; id: string; name: string; color: LabelColor; now: string },
+): PersistedState {
+  const board = state.boards[input.boardId];
+  const name = cleanLabelName(input.name);
+  if (
+    !board ||
+    !name ||
+    !LABEL_COLORS.includes(input.color) ||
+    board.labels.length >= MAX_LABELS_PER_BOARD ||
+    board.labels.some((l) => l.id === input.id) ||
+    isLabelNameTaken(board, name)
+  ) {
+    return state;
+  }
+
+  const label: Label = { id: input.id, name, color: input.color };
+  return {
+    ...state,
+    boards: {
+      ...state.boards,
+      [board.id]: { ...board, labels: [...board.labels, label], updatedAt: input.now },
+    },
+  };
+}
+
+/** Renames and/or recolors a label; a blank or duplicate name is rejected. */
+export function updateLabel(
+  state: PersistedState,
+  input: {
+    boardId: string;
+    labelId: string;
+    patch: Partial<Pick<Label, "name" | "color">>;
+    now: string;
+  },
+): PersistedState {
+  const board = state.boards[input.boardId];
+  const label = board?.labels.find((l) => l.id === input.labelId);
+  if (!board || !label) return state;
+
+  const next: Label = { ...label };
+  if (input.patch.name !== undefined) {
+    const name = cleanLabelName(input.patch.name);
+    if (!name || isLabelNameTaken(board, name, label.id)) return state;
+    next.name = name;
+  }
+  if (input.patch.color !== undefined) {
+    if (!LABEL_COLORS.includes(input.patch.color)) return state;
+    next.color = input.patch.color;
+  }
+  if (next.name === label.name && next.color === label.color) return state;
+
+  return {
+    ...state,
+    boards: {
+      ...state.boards,
+      [board.id]: {
+        ...board,
+        labels: board.labels.map((l) => (l.id === label.id ? next : l)),
+        updatedAt: input.now,
+      },
+    },
+  };
+}
+
+/** Deletes a label from the board and removes it from every card that used it. */
+export function deleteLabel(
+  state: PersistedState,
+  input: { boardId: string; labelId: string; now: string },
+): PersistedState {
+  const board = state.boards[input.boardId];
+  if (!board || !board.labels.some((l) => l.id === input.labelId)) return state;
+
+  const cards = { ...state.cards };
+  for (const card of Object.values(state.cards)) {
+    if (card.boardId === board.id && card.labelIds.includes(input.labelId)) {
+      cards[card.id] = {
+        ...card,
+        labelIds: card.labelIds.filter((id) => id !== input.labelId),
+        updatedAt: input.now,
+      };
+    }
+  }
+
+  return {
+    ...state,
+    cards,
+    boards: {
+      ...state.boards,
+      [board.id]: {
+        ...board,
+        labels: board.labels.filter((l) => l.id !== input.labelId),
+        updatedAt: input.now,
+      },
+    },
+  };
 }
 
 // ---------- Columns ----------

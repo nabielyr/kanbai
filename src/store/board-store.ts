@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import * as ops from "@/lib/domain/board-ops";
 import { createId } from "@/lib/domain/ids";
-import type { PersistedState } from "@/lib/domain/types";
+import type { Label, LabelColor, PersistedState } from "@/lib/domain/types";
 
 export interface BoardActions {
   /** Creates a board with default columns and makes it active. Returns its id, or null. */
@@ -10,6 +10,16 @@ export interface BoardActions {
   /** Deletes a board with all of its columns and cards. */
   deleteBoard: (boardId: string) => void;
   setActiveBoard: (boardId: string) => void;
+  /** Returns the new label id, or null when rejected (blank, duplicate name, board full). */
+  addLabel: (boardId: string, name: string, color: LabelColor) => string | null;
+  /** Returns false when rejected (e.g. blank or duplicate name). */
+  updateLabel: (
+    boardId: string,
+    labelId: string,
+    patch: Partial<Pick<Label, "name" | "color">>,
+  ) => boolean;
+  /** Deletes a label and removes it from all cards. */
+  deleteLabel: (boardId: string, labelId: string) => void;
   /** Returns the new card id, or null when the input was rejected (e.g. empty title). */
   addCard: (
     columnId: string,
@@ -80,6 +90,18 @@ export function createBoardStore(
         },
         setActiveBoard: (boardId) => {
           apply((d) => ops.setActiveBoard(d, { boardId }));
+        },
+        addLabel: (boardId, name, color) => {
+          const id = deps.createId();
+          const added = apply((d) =>
+            ops.addLabel(d, { boardId, id, name, color, now: deps.now() }),
+          );
+          return added ? id : null;
+        },
+        updateLabel: (boardId, labelId, patch) =>
+          apply((d) => ops.updateLabel(d, { boardId, labelId, patch, now: deps.now() })),
+        deleteLabel: (boardId, labelId) => {
+          apply((d) => ops.deleteLabel(d, { boardId, labelId, now: deps.now() }));
         },
         addCard: (columnId, title, options) => {
           const id = deps.createId();

@@ -15,6 +15,18 @@ export const labelColorClass: Record<LabelColor, string> = {
   slate: "bg-label-slate text-label-slate-foreground",
 };
 
+/** Background only, for color swatches. */
+export const labelSwatchClass: Record<LabelColor, string> = {
+  mint: "bg-label-mint",
+  sky: "bg-label-sky",
+  lilac: "bg-label-lilac",
+  peach: "bg-label-peach",
+  lemon: "bg-label-lemon",
+  rose: "bg-label-rose",
+  sage: "bg-label-sage",
+  slate: "bg-label-slate",
+};
+
 export const dueChipClass: Record<DueStatus, string> = {
   none: "bg-muted text-muted-foreground",
   later: "bg-muted text-muted-foreground",

@@ -15,6 +15,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "@/lib/domain/board-ops
 import { PRIORITIES, type Priority } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
+import { CardLabels } from "./card-labels";
 import { priorityIcon, priorityMeta } from "./card-styles";
 import { useDeleteCard } from "./use-delete-card";
 
@@ -142,6 +143,8 @@ function CardDialogBody({
         value={card.priority}
         onChange={(priority) => updateCard(cardId, { priority })}
       />
+
+      <CardLabels cardId={cardId} />
 
       <div className="space-y-2">
         <label htmlFor={`card-${cardId}-description`} className="text-sm font-semibold">

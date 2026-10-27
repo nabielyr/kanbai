@@ -63,6 +63,25 @@ describe("createBoardStore", () => {
     expect(d.cards[cardId].priority).toBe("high");
   });
 
+  it("adds, updates and deletes labels", () => {
+    const id = actions().addLabel(DEMO_BOARD_ID, "urgent fix", "rose")!;
+    expect(id).toBe("id-1");
+    expect(actions().addLabel(DEMO_BOARD_ID, "Urgent Fix", "sky")).toBeNull();
+
+    actions().updateCard("demo-card-domain", { labelIds: [id] });
+    expect(actions().updateLabel(DEMO_BOARD_ID, id, { name: "hotfix" })).toBe(true);
+    expect(actions().updateLabel(DEMO_BOARD_ID, id, { name: "  " })).toBe(false);
+    expect(data().boards[DEMO_BOARD_ID].labels.at(-1)).toEqual({
+      id,
+      name: "hotfix",
+      color: "rose",
+    });
+
+    actions().deleteLabel(DEMO_BOARD_ID, id);
+    expect(data().cards["demo-card-domain"].labelIds).toEqual([]);
+    expect(findIntegrityIssues(data())).toEqual([]);
+  });
+
   it("replaces the whole state", () => {
     const fresh = createDemoState(new Date(2026, 0, 1));
     actions().replaceState(fresh);
