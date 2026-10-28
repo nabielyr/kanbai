@@ -41,17 +41,22 @@ import {
   type ColumnItems,
 } from "@/lib/domain/drag";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
+import { useFilteredBoard } from "../board-filters";
 import { SmartKeyboardSensor, SmartMouseSensor, SmartTouchSensor } from "./sensors";
 
 const EMPTY: string[] = [];
 
-/** Card ids shown in a column: the live drag preview while dragging, otherwise the store. */
+/**
+ * Card ids shown in a column: the live drag preview while dragging, otherwise the cards that
+ * match the current filters (or all of them when nothing is filtered).
+ */
 const PreviewContext = createContext<ColumnItems | null>(null);
 
 export function useColumnCardIds(columnId: string): string[] {
   const preview = useContext(PreviewContext);
+  const filtered = useFilteredBoard();
   const stored = useBoardData((d) => d.columns[columnId]?.cardIds ?? EMPTY);
-  return preview?.[columnId] ?? stored;
+  return preview?.[columnId] ?? filtered?.visible[columnId] ?? stored;
 }
 
 const screenReaderInstructions = {
@@ -107,11 +112,18 @@ export function BoardDnd({
     return () => cancelAnimationFrame(frame);
   }, [preview]);
 
+  const filtered = useFilteredBoard();
+
+  /**
+   * The drag preview starts from the visible cards only. Drops are saved relative to the
+   * next visible card (see moveCard), so hidden cards keep their places.
+   */
   const snapshot = useCallback((): ColumnItems => {
+    if (filtered) return filtered.visible;
     const data = storeApi.getState().data;
     const columnIds = data.boards[boardId]?.columnIds ?? [];
     return Object.fromEntries(columnIds.map((id) => [id, data.columns[id]?.cardIds ?? []]));
-  }, [storeApi, boardId]);
+  }, [filtered, storeApi, boardId]);
 
   /**
    * Pointer first (what's under the finger), then the closest card inside the hovered column.

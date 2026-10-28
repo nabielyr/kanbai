@@ -2,6 +2,8 @@
 
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useBoardFilters } from "@/components/board/board-filters";
 import { InlineTextInput } from "@/components/common/inline-text-input";
 import { useBoardActions } from "@/store/board-store-provider";
 
@@ -9,6 +11,16 @@ import { useBoardActions } from "@/store/board-store-provider";
 export function AddCard({ columnId, columnTitle }: { columnId: string; columnTitle: string }) {
   const [open, setOpen] = useState(false);
   const { addCard } = useBoardActions();
+  const { isCardHidden, clearFilters } = useBoardFilters();
+
+  function add(title: string) {
+    const id = addCard(columnId, title);
+    if (id && isCardHidden(id)) {
+      toast("Card added, but hidden by the current filters.", {
+        action: { label: "Clear filters", onClick: clearFilters },
+      });
+    }
+  }
 
   if (!open) {
     return (
@@ -28,7 +40,7 @@ export function AddCard({ columnId, columnTitle }: { columnId: string; columnTit
         aria-label={`New card title in ${columnTitle}`}
         placeholder="What needs doing?"
         keepOpenOnEnter
-        onSubmit={(title) => addCard(columnId, title)}
+        onSubmit={add}
         onCancel={() => setOpen(false)}
         className="shadow-soft bg-card"
       />

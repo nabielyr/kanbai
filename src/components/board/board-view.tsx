@@ -4,6 +4,7 @@ import { AddColumn } from "@/components/column/add-column";
 import { CardDialogProvider } from "@/components/card/card-dialog-context";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
+import { BoardFiltersProvider, FilterBar } from "./board-filters";
 import { BoardTitle } from "./board-title";
 import { BoardDnd } from "./dnd/board-dnd";
 
@@ -21,23 +22,28 @@ export function BoardView({
   if (!board) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-4 sm:px-6">
-        <BoardTitle boardId={board.id} />
-        {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
-      </div>
+    <BoardFiltersProvider boardId={board.id} now={now}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-3 sm:px-6">
+          <BoardTitle boardId={board.id} />
+          {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
+        </div>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4 sm:px-6">
+          <FilterBar boardId={board.id} />
+        </div>
 
-      <CardDialogProvider now={now}>
-        <BoardDnd boardId={board.id} now={now}>
-          <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-            {board.columnIds.map((columnId) => (
-              <Column key={columnId} columnId={columnId} now={now} />
-            ))}
-            <AddColumn boardId={board.id} />
-          </div>
-        </BoardDnd>
-      </CardDialogProvider>
-    </div>
+        <CardDialogProvider now={now}>
+          <BoardDnd boardId={board.id} now={now}>
+            <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+              {board.columnIds.map((columnId) => (
+                <Column key={columnId} columnId={columnId} now={now} />
+              ))}
+              <AddColumn boardId={board.id} />
+            </div>
+          </BoardDnd>
+        </CardDialogProvider>
+      </div>
+    </BoardFiltersProvider>
   );
 }
 

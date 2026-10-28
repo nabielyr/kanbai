@@ -29,9 +29,12 @@ export function ColumnHeader({
   column,
   headingId,
   dragHandle,
+  shownCount,
 }: {
   column: Column;
   headingId: string;
+  /** Cards matching the current filters, when filtering. */
+  shownCount?: number;
   /** Grip used to reorder the column (rendered by the sortable column). */
   dragHandle?: React.ReactNode;
 }) {
@@ -85,7 +88,14 @@ export function ColumnHeader({
       {!renaming && (
         <>
           <span className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-            {cardCount}
+            {shownCount === undefined ? (
+              cardCount
+            ) : (
+              <>
+                {shownCount}/{cardCount}
+                <span className="sr-only"> cards shown</span>
+              </>
+            )}
           </span>
 
           <DropdownMenu>

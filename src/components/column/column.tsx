@@ -3,6 +3,7 @@
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
+import { useFilteredBoard } from "@/components/board/board-filters";
 import { useColumnCardIds } from "@/components/board/dnd/board-dnd";
 import { AddCard } from "@/components/card/add-card";
 import { SortableCard } from "@/components/card/sortable-card";
@@ -13,6 +14,7 @@ import { ColumnHeader } from "./column-header";
 export function Column({ columnId, now }: { columnId: string; now: Date }) {
   const column = useBoardData((d) => d.columns[columnId]);
   const cardIds = useColumnCardIds(columnId);
+  const filtered = useFilteredBoard();
   // Sortable for reordering columns (via the grip), and a drop target for cards at the same time,
   // so empty columns accept cards too.
   const {
@@ -45,6 +47,7 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
       <ColumnHeader
         column={column}
         headingId={headingId}
+        shownCount={filtered ? (filtered.visible[columnId]?.length ?? 0) : undefined}
         dragHandle={
           <button
             type="button"
@@ -67,6 +70,9 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
           ))}
         </ol>
       </SortableContext>
+      {filtered && cardIds.length === 0 && column.cardIds.length > 0 && (
+        <p className="text-muted-foreground px-4 pb-1 text-xs">No matching cards</p>
+      )}
 
       <div className="px-2 pt-1 pb-2">
         <AddCard columnId={column.id} columnTitle={column.title} />
