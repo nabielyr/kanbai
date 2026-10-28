@@ -1,7 +1,8 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import * as ops from "@/lib/domain/board-ops";
+import * as checklist from "@/lib/domain/checklist";
 import { createId } from "@/lib/domain/ids";
-import type { Label, LabelColor, PersistedState } from "@/lib/domain/types";
+import type { ChecklistItem, Label, LabelColor, PersistedState } from "@/lib/domain/types";
 
 export interface BoardActions {
   /** Creates a board with default columns and makes it active. Returns its id, or null. */
@@ -27,6 +28,12 @@ export interface BoardActions {
     options?: { position?: "top" | "bottom"; fields?: Omit<ops.CardPatch, "title"> },
   ) => string | null;
   updateCard: (cardId: string, patch: ops.CardPatch) => void;
+  /** Returns the new checklist item id, or null when rejected (blank title, list full). */
+  addChecklistItem: (cardId: string, title: string) => string | null;
+  toggleChecklistItem: (cardId: string, itemId: string) => void;
+  renameChecklistItem: (cardId: string, itemId: string, title: string) => void;
+  deleteChecklistItem: (cardId: string, itemId: string) => void;
+  moveChecklistItem: (cardId: string, itemId: string, toIndex: number) => void;
   /** Deletes a card and returns an `undo` function that puts it back, or null if nothing was deleted. */
   deleteCard: (cardId: string) => (() => void) | null;
   moveCard: (cardId: string, toColumnId: string, beforeCardId: string | null) => void;
@@ -71,6 +78,18 @@ export function createBoardStore(
       return true;
     };
 
+    /** Applies a pure checklist op to one card's checklist. */
+    const applyChecklist = (
+      cardId: string,
+      op: (items: ChecklistItem[]) => ChecklistItem[],
+    ): boolean =>
+      apply((d) => {
+        const card = d.cards[cardId];
+        const next = card ? op(card.checklist) : undefined;
+        if (!card || next === card.checklist) return d;
+        return ops.updateCard(d, { cardId, patch: { checklist: next }, now: deps.now() });
+      });
+
     return {
       data: initialData,
       actions: {
@@ -112,6 +131,29 @@ export function createBoardStore(
         },
         updateCard: (cardId, patch) => {
           apply((d) => ops.updateCard(d, { cardId, patch, now: deps.now() }));
+        },
+        addChecklistItem: (cardId, title) => {
+          const id = deps.createId();
+          const added = applyChecklist(cardId, (items) =>
+            checklist.addChecklistItem(items, { id, title }),
+          );
+          return added ? id : null;
+        },
+        toggleChecklistItem: (cardId, itemId) => {
+          applyChecklist(cardId, (items) => checklist.toggleChecklistItem(items, { itemId }));
+        },
+        renameChecklistItem: (cardId, itemId, title) => {
+          applyChecklist(cardId, (items) =>
+            checklist.renameChecklistItem(items, { itemId, title }),
+          );
+        },
+        deleteChecklistItem: (cardId, itemId) => {
+          applyChecklist(cardId, (items) => checklist.deleteChecklistItem(items, { itemId }));
+        },
+        moveChecklistItem: (cardId, itemId, toIndex) => {
+          applyChecklist(cardId, (items) =>
+            checklist.moveChecklistItem(items, { itemId, toIndex }),
+          );
         },
         deleteCard: (cardId) => {
           const before = get().data;

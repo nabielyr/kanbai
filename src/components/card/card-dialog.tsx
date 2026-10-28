@@ -15,6 +15,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "@/lib/domain/board-ops
 import { PRIORITIES, type Priority } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
+import { CardChecklist } from "./card-checklist";
 import { CardDueDate } from "./card-due-date";
 import { CardLabels } from "./card-labels";
 import { priorityIcon, priorityMeta } from "./card-styles";
@@ -50,7 +51,12 @@ export function CardDialog({ cardId, now, onClose }: CardDialogProps) {
         onClose();
       }}
     >
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent
+        className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        onEscapeKeyDown={(e) => {
+          if ((e.target as HTMLElement | null)?.closest?.("[data-inline-edit]")) e.preventDefault();
+        }}
+      >
         {shownCardId && exists && (
           <CardDialogBody
             key={shownCardId}
@@ -170,6 +176,8 @@ function CardDialogBody({
           className="min-h-28"
         />
       </div>
+
+      <CardChecklist cardId={cardId} />
 
       <DialogFooter className="sm:justify-between">
         <Button

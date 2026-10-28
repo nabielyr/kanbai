@@ -82,6 +82,32 @@ describe("createBoardStore", () => {
     expect(findIntegrityIssues(data())).toEqual([]);
   });
 
+  it("edits a card's checklist", () => {
+    const card = () => data().cards["demo-card-hosting"];
+    const first = actions().addChecklistItem("demo-card-hosting", "Vercel")!;
+    const second = actions().addChecklistItem("demo-card-hosting", "Netlify")!;
+    expect(actions().addChecklistItem("demo-card-hosting", "  ")).toBeNull();
+    expect(actions().addChecklistItem("missing", "x")).toBeNull();
+
+    actions().toggleChecklistItem("demo-card-hosting", first);
+    actions().renameChecklistItem("demo-card-hosting", second, "Cloudflare Pages");
+    actions().moveChecklistItem("demo-card-hosting", second, 0);
+    expect(card().checklist.map((i) => [i.title, i.done])).toEqual([
+      ["Cloudflare Pages", false],
+      ["Vercel", true],
+    ]);
+    expect(card().updatedAt).toBe(NOW);
+
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
+    actions().moveChecklistItem("demo-card-hosting", second, 0); // no-op
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
+
+    actions().deleteChecklistItem("demo-card-hosting", first);
+    expect(card().checklist.map((i) => i.id)).toEqual([second]);
+  });
+
   it("replaces the whole state", () => {
     const fresh = createDemoState(new Date(2026, 0, 1));
     actions().replaceState(fresh);

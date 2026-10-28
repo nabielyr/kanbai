@@ -59,6 +59,8 @@ export function InlineTextInput({
       placeholder={placeholder}
       maxLength={maxLength}
       aria-label={props["aria-label"]}
+      // Lets a surrounding dialog leave Escape to this field (cancel the edit, keep the dialog).
+      data-inline-edit=""
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter" && !e.nativeEvent.isComposing) {
