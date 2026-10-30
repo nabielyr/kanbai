@@ -46,3 +46,17 @@ export function fakeFetch(...responses: (Response | Error)[]) {
     return next;
   });
 }
+
+export function groqSuccess(content: string): Response {
+  return Response.json({ choices: [{ message: { content }, finish_reason: "stop" }] });
+}
+
+export function groqError(
+  status: number,
+  options: { message?: string; retryAfter?: string } = {},
+): Response {
+  return Response.json(
+    { error: { message: options.message ?? "error", code: "rate_limit_exceeded" } },
+    { status, headers: options.retryAfter ? { "retry-after": options.retryAfter } : {} },
+  );
+}

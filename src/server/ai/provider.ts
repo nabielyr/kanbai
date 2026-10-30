@@ -81,3 +81,12 @@ export function parseRetryAfter(value: unknown): number | undefined {
   const seconds = Number.parseFloat(String(value));
   return Number.isFinite(seconds) && seconds >= 0 ? Math.ceil(seconds) : undefined;
 }
+
+/** Reads a JSON body, or null when it is missing or not JSON (e.g. an HTML error page). */
+export async function readJson<T>(response: Response): Promise<T | null> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}

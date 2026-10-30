@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeFetch, geminiError, geminiSuccess, VALID_OUTPUT } from "@/server/ai/test-helpers";
+import {
+  fakeFetch,
+  geminiError,
+  geminiSuccess,
+  groqSuccess,
+  VALID_OUTPUT,
+} from "@/server/ai/test-helpers";
 import { POST } from "./route";
 
 const APP = "http://localhost:3000";
@@ -93,6 +99,21 @@ describe("POST /api/ai/chunk", () => {
     const response = await POST(chunkRequest({ title: "x" }));
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("20");
+  });
+
+  it("falls back to Groq when the Gemini key is broken", async () => {
+    vi.stubEnv("GROQ_API_KEY", "groq-key");
+    const fetch = fakeFetch(
+      geminiError(400, { message: "API key not valid" }),
+      groqSuccess(VALID_OUTPUT),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await POST(chunkRequest({ title: "Write a blog post" }));
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).provider).toBe("groq");
+    expect(String(fetch.mock.calls[1][0])).toContain("api.groq.com");
   });
 
   it("never leaks the API key in a response", async () => {

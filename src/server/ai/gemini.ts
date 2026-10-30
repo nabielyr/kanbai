@@ -5,6 +5,7 @@ import {
   failureFromThrown,
   parseRetryAfter,
   ProviderError,
+  readJson,
   type LlmProvider,
 } from "./provider";
 
@@ -44,14 +45,6 @@ interface GeminiErrorBody {
 interface GeminiResponseBody {
   candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
   promptFeedback?: { blockReason?: string };
-}
-
-async function readJson<T>(response: Response): Promise<T | null> {
-  try {
-    return (await response.json()) as T;
-  } catch {
-    return null;
-  }
 }
 
 export function createGeminiProvider(options: {
