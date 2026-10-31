@@ -2,6 +2,7 @@
 
 import { AddColumn } from "@/components/column/add-column";
 import { CardDialogProvider } from "@/components/card/card-dialog-context";
+import { ChunkDialogProvider } from "@/components/chunk/chunk-dialog-context";
 import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
 import { BoardFiltersProvider, FilterBar } from "./board-filters";
@@ -32,16 +33,18 @@ export function BoardView({
           <FilterBar boardId={board.id} />
         </div>
 
-        <CardDialogProvider now={now}>
-          <BoardDnd boardId={board.id} now={now}>
-            <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-              {board.columnIds.map((columnId) => (
-                <Column key={columnId} columnId={columnId} now={now} />
-              ))}
-              <AddColumn boardId={board.id} />
-            </div>
-          </BoardDnd>
-        </CardDialogProvider>
+        <ChunkDialogProvider>
+          <CardDialogProvider now={now}>
+            <BoardDnd boardId={board.id} now={now}>
+              <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+                {board.columnIds.map((columnId) => (
+                  <Column key={columnId} columnId={columnId} now={now} />
+                ))}
+                <AddColumn boardId={board.id} />
+              </div>
+            </BoardDnd>
+          </CardDialogProvider>
+        </ChunkDialogProvider>
       </div>
     </BoardFiltersProvider>
   );

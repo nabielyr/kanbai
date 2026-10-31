@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useChunkDialog } from "@/components/chunk/chunk-dialog-context";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "@/lib/domain/board-ops";
 import { PRIORITIES, type Priority } from "@/lib/domain/types";
@@ -90,6 +91,7 @@ function CardDialogBody({
   const { updateCard } = useBoardActions();
   const storeApi = useBoardStoreApi();
   const deleteCard = useDeleteCard();
+  const { openChunk } = useChunkDialog();
 
   const [title, setTitle] = useState(card?.title ?? "");
   const [description, setDescription] = useState(card?.description ?? "");
@@ -146,9 +148,22 @@ function CardDialogBody({
           onBlur={commitTitle}
           className="font-heading hover:bg-muted focus-visible:ring-ring/50 field-sizing-content w-full resize-none rounded-lg px-1 py-0.5 text-xl font-bold outline-none focus-visible:ring-[3px] sm:text-2xl"
         />
-        <DialogDescription className="px-1">
-          in <span className="text-foreground font-medium">{columnTitle}</span>
-        </DialogDescription>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <DialogDescription>
+            in <span className="text-foreground font-medium">{columnTitle}</span>
+          </DialogDescription>
+          <Button
+            variant="ai"
+            size="sm"
+            onClick={() => {
+              // Save typed edits first so the AI sees the latest title and description.
+              commitRef.current?.();
+              openChunk(cardId);
+            }}
+          >
+            <Sparkles /> Chunk it
+          </Button>
+        </div>
       </div>
 
       <PriorityPicker

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useChunkDialog } from "@/components/chunk/chunk-dialog-context";
 import { InlineTextInput } from "@/components/common/inline-text-input";
 import { useBoardActions, useBoardData } from "@/store/board-store-provider";
 import { CardMenu } from "./card-menu";
@@ -14,6 +15,7 @@ export function BoardCard({ cardId, now }: { cardId: string; now: Date }) {
   const isDone = useBoardData((d) => (card ? Boolean(d.columns[card.columnId]?.isDone) : false));
   const { updateCard } = useBoardActions();
   const deleteCard = useDeleteCard();
+  const { openChunk } = useChunkDialog();
   const [editing, setEditing] = useState(false);
 
   if (!card) return null;
@@ -29,6 +31,7 @@ export function BoardCard({ cardId, now }: { cardId: string; now: Date }) {
           <CardMenu
             cardTitle={card.title}
             onEditTitle={() => setEditing(true)}
+            onChunk={() => openChunk(cardId)}
             onDelete={() => deleteCard(cardId)}
           />
         )

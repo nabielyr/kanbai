@@ -1,19 +1,9 @@
 "use client";
 
-import {
-  closestCenter,
-  DndContext,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Plus, X } from "lucide-react";
+import { useState } from "react";
 import { InlineTextInput } from "@/components/common/inline-text-input";
+import { SortableList, SortableRow } from "@/components/common/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,40 +15,16 @@ import type { ChecklistItem } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { useBoardActions, useBoardData } from "@/store/board-store-provider";
 
-const REORDER_HINT = "Drag to reorder, or press the up and down arrow keys.";
-
 /** Checklist section of the card dialog: progress, items (toggle/edit/delete/reorder) and add. */
 export function CardChecklist({ cardId }: { cardId: string }) {
   const items = useBoardData((d) => d.cards[cardId]?.checklist);
   const { addChecklistItem, moveChecklistItem } = useBoardActions();
   const [newTitle, setNewTitle] = useState("");
-  const [announcement, setAnnouncement] = useState("");
-  const grips = useRef(new Map<string, HTMLButtonElement>());
-  // Long-press on touch so scrolling the dialog never starts a drag.
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-  );
 
   if (!items) return null;
   const progress = getChecklistProgress(items);
   const full = items.length >= MAX_CHECKLIST_ITEMS;
   const headingId = `card-${cardId}-checklist`;
-
-  function move(item: ChecklistItem, toIndex: number) {
-    if (toIndex < 0 || toIndex >= items!.length) return;
-    moveChecklistItem(cardId, item.id, toIndex);
-    setAnnouncement(`Moved “${item.title}” to position ${toIndex + 1} of ${items!.length}.`);
-    // React moves the focused node when reordering; make sure focus stays on its grip.
-    requestAnimationFrame(() => grips.current.get(item.id)?.focus());
-  }
-
-  function handleDragEnd({ active, over }: DragEndEvent) {
-    if (!over || active.id === over.id) return;
-    const item = items!.find((i) => i.id === active.id);
-    const toIndex = items!.findIndex((i) => i.id === over.id);
-    if (item && toIndex !== -1) move(item, toIndex);
-  }
 
   return (
     <section className="space-y-2" aria-labelledby={headingId}>
@@ -93,33 +59,18 @@ export function CardChecklist({ cardId }: { cardId: string }) {
       )}
 
       {items.length > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-          accessibility={{ screenReaderInstructions: { draggable: REORDER_HINT } }}
+        <SortableList
+          ids={items.map((i) => i.id)}
+          onMove={(itemId, toIndex) => moveChecklistItem(cardId, itemId, toIndex)}
+          getLabel={(itemId) => items.find((i) => i.id === itemId)?.title ?? "item"}
+          aria-label="Checklist items"
+          className="space-y-0.5"
         >
-          <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-            <ul className="space-y-0.5" aria-label="Checklist items">
-              {items.map((item, index) => (
-                <ChecklistRow
-                  key={item.id}
-                  cardId={cardId}
-                  item={item}
-                  registerGrip={(node) => {
-                    if (node) grips.current.set(item.id, node);
-                    else grips.current.delete(item.id);
-                  }}
-                  onMoveBy={(delta) => move(item, index + delta)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+          {items.map((item, index) => (
+            <ChecklistRow key={item.id} cardId={cardId} item={item} index={index} />
+          ))}
+        </SortableList>
       )}
-      <p className="sr-only" aria-live="polite">
-        {announcement}
-      </p>
 
       <form
         className="flex items-center gap-1.5"
@@ -148,57 +99,23 @@ export function CardChecklist({ cardId }: { cardId: string }) {
 function ChecklistRow({
   cardId,
   item,
-  registerGrip,
-  onMoveBy,
+  index,
 }: {
   cardId: string;
   item: ChecklistItem;
-  registerGrip: (node: HTMLButtonElement | null) => void;
-  onMoveBy: (delta: number) => void;
+  index: number;
 }) {
   const { toggleChecklistItem, renameChecklistItem, deleteChecklistItem } = useBoardActions();
   const [editing, setEditing] = useState(false);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
   const titleId = `checklist-${item.id}-title`;
 
   return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(
-        "group/item hover:bg-muted/60 flex items-center gap-1.5 rounded-lg px-1 py-0.5",
-        isDragging && "bg-card shadow-lift relative z-10",
-      )}
+    <SortableRow
+      id={item.id}
+      index={index}
+      gripLabel={`Reorder “${item.title}”`}
+      className="group/item hover:bg-muted/60"
     >
-      <button
-        type="button"
-        ref={(node) => {
-          setActivatorNodeRef(node);
-          registerGrip(node);
-        }}
-        {...attributes}
-        {...listeners}
-        aria-roledescription="sortable item"
-        aria-label={`Reorder “${item.title}”`}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            onMoveBy(e.key === "ArrowUp" ? -1 : 1);
-          }
-        }}
-        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 cursor-grab touch-none rounded p-0.5 outline-none focus-visible:ring-[3px] active:cursor-grabbing"
-      >
-        <GripVertical className="size-4" aria-hidden="true" />
-      </button>
-
       <input
         type="checkbox"
         checked={item.done}
@@ -249,6 +166,6 @@ function ChecklistRow({
           <X />
         </Button>
       )}
-    </li>
+    </SortableRow>
   );
 }
