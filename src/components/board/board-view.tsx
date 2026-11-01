@@ -7,6 +7,7 @@ import { Column } from "@/components/column/column";
 import { useBoardData } from "@/store/board-store-provider";
 import { BoardFiltersProvider, FilterBar } from "./board-filters";
 import { BoardTitle } from "./board-title";
+import { NextTaskButton, NextTaskProvider } from "./next-task";
 import { BoardDnd } from "./dnd/board-dnd";
 
 export function BoardView({
@@ -24,28 +25,33 @@ export function BoardView({
 
   return (
     <BoardFiltersProvider boardId={board.id} now={now}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-3 sm:px-6">
-          <BoardTitle boardId={board.id} />
-          {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
-        </div>
-        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4 sm:px-6">
-          <FilterBar boardId={board.id} />
-        </div>
-
-        <ChunkDialogProvider>
-          <CardDialogProvider now={now}>
-            <BoardDnd boardId={board.id} now={now}>
-              <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
-                {board.columnIds.map((columnId) => (
-                  <Column key={columnId} columnId={columnId} now={now} />
-                ))}
-                <AddColumn boardId={board.id} />
+      <ChunkDialogProvider>
+        <CardDialogProvider now={now}>
+          <NextTaskProvider boardId={board.id} now={now}>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-end gap-3 px-4 pt-6 pb-3 sm:px-6">
+                <BoardTitle boardId={board.id} />
+                {toolbar && <div className="ml-auto flex items-center gap-2">{toolbar}</div>}
               </div>
-            </BoardDnd>
-          </CardDialogProvider>
-        </ChunkDialogProvider>
-      </div>
+              <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-center gap-2 px-4 pb-4 sm:px-6">
+                <FilterBar boardId={board.id} />
+                <div className="sm:ml-auto">
+                  <NextTaskButton />
+                </div>
+              </div>
+
+              <BoardDnd boardId={board.id} now={now}>
+                <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+                  {board.columnIds.map((columnId) => (
+                    <Column key={columnId} columnId={columnId} now={now} />
+                  ))}
+                  <AddColumn boardId={board.id} />
+                </div>
+              </BoardDnd>
+            </div>
+          </NextTaskProvider>
+        </CardDialogProvider>
+      </ChunkDialogProvider>
     </BoardFiltersProvider>
   );
 }

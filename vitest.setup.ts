@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
+import { toast } from "sonner";
 import { afterEach } from "vitest";
 
 // jsdom gaps that Radix UI primitives (menus, dialogs) and sonner rely on.
@@ -28,4 +29,6 @@ if (typeof window !== "undefined") {
 
 afterEach(() => {
   cleanup();
+  // Sonner keeps toasts in a global store; without this they reappear in the next test.
+  toast.dismiss();
 });

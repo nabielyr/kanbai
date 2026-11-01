@@ -3,6 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useRef } from "react";
+import { useIsSuggestedCard } from "@/components/board/next-task";
 import { cn } from "@/lib/utils";
 import { useBoardData } from "@/store/board-store-provider";
 import { BoardCard } from "./board-card";
@@ -17,6 +18,7 @@ const INTERACTIVE = "button, a, input, textarea, select, [role='menuitem']";
 export function SortableCard({ cardId, now }: { cardId: string; now: Date }) {
   const title = useBoardData((d) => d.cards[cardId]?.title ?? "");
   const { openCard } = useCardDialog();
+  const suggested = useIsSuggestedCard(cardId);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: cardId,
     data: { type: "card" },
@@ -59,10 +61,14 @@ export function SortableCard({ cardId, now }: { cardId: string; now: Date }) {
       aria-roledescription="draggable card"
       aria-label={title}
       aria-haspopup="dialog"
+      data-card-id={cardId}
+      data-suggested={suggested || undefined}
       className={cn(
         "focus-visible:ring-ring/50 cursor-pointer touch-manipulation rounded-lg outline-none select-none focus-visible:ring-[3px] active:cursor-grabbing [&_input]:select-text",
         // The original stays in place as a faded placeholder while its overlay is dragged.
         isDragging && "opacity-40",
+        // "What should I do next?" picked this card.
+        suggested && "ring-ai ring-offset-column ring-2 ring-offset-2 motion-safe:animate-pulse",
       )}
     >
       <BoardCard cardId={cardId} now={now} />
