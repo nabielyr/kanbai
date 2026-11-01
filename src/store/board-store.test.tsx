@@ -108,6 +108,22 @@ describe("createBoardStore", () => {
     expect(card().checklist.map((i) => i.id)).toEqual([second]);
   });
 
+  it("applies Chunk it steps as a checklist or as new cards", () => {
+    const steps = [
+      { title: "Pick a template", estimateMinutes: 20 },
+      { title: "Deploy", estimateMinutes: 10 },
+    ];
+    expect(actions().applyChunkAsChecklist("demo-card-hosting", steps)).toBe(2);
+    expect(data().cards["demo-card-hosting"].checklist.map((i) => i.source)).toEqual(["ai", "ai"]);
+    expect(actions().applyChunkAsChecklist("missing", steps)).toBe(0);
+
+    const ids = actions().applyChunkAsCards("demo-card-hosting", "demo-col-todo", steps);
+    expect(ids).toHaveLength(2);
+    expect(data().columns["demo-col-todo"].cardIds.slice(-2)).toEqual(ids);
+    expect(actions().applyChunkAsCards("demo-card-hosting", "missing", steps)).toEqual([]);
+    expect(findIntegrityIssues(data())).toEqual([]);
+  });
+
   it("replaces the whole state", () => {
     const fresh = createDemoState(new Date(2026, 0, 1));
     actions().replaceState(fresh);

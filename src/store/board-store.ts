@@ -34,6 +34,10 @@ export interface BoardActions {
   renameChecklistItem: (cardId: string, itemId: string, title: string) => void;
   deleteChecklistItem: (cardId: string, itemId: string) => void;
   moveChecklistItem: (cardId: string, itemId: string, toIndex: number) => void;
+  /** Adds accepted "Chunk it" steps to a card's checklist; returns how many were added. */
+  applyChunkAsChecklist: (cardId: string, steps: ops.ChunkStep[]) => number;
+  /** Creates one card per step at the bottom of a column; returns the new ids ([] if rejected). */
+  applyChunkAsCards: (parentCardId: string, columnId: string, steps: ops.ChunkStep[]) => string[];
   /** Deletes a card and returns an `undo` function that puts it back, or null if nothing was deleted. */
   deleteCard: (cardId: string) => (() => void) | null;
   moveCard: (cardId: string, toColumnId: string, beforeCardId: string | null) => void;
@@ -154,6 +158,19 @@ export function createBoardStore(
           applyChecklist(cardId, (items) =>
             checklist.moveChecklistItem(items, { itemId, toIndex }),
           );
+        },
+        applyChunkAsChecklist: (cardId, steps) => {
+          const before = get().data.cards[cardId]?.checklist.length ?? 0;
+          const itemIds = steps.map(() => deps.createId());
+          apply((d) => ops.applyChunkAsChecklist(d, { cardId, steps, itemIds, now: deps.now() }));
+          return (get().data.cards[cardId]?.checklist.length ?? 0) - before;
+        },
+        applyChunkAsCards: (parentCardId, columnId, steps) => {
+          const cardIds = steps.map(() => deps.createId());
+          const added = apply((d) =>
+            ops.applyChunkAsCards(d, { parentCardId, columnId, steps, cardIds, now: deps.now() }),
+          );
+          return added ? cardIds : [];
         },
         deleteCard: (cardId) => {
           const before = get().data;

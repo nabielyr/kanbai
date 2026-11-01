@@ -1,9 +1,11 @@
+import { MAX_CHECKLIST_ITEMS } from "./checklist";
 import { isValidDueDate } from "./due";
 import {
   LABEL_COLORS,
   STATE_VERSION,
   type Board,
   type Card,
+  type ChecklistItem,
   type Column,
   type Label,
   type LabelColor,
@@ -530,6 +532,87 @@ export function moveCard(
     },
     boards: touchBoard(state, card.boardId, input.now),
   };
+}
+
+// ---------- Chunk it ----------
+
+/** One accepted step from "Chunk it" (already edited and approved by the user). */
+export interface ChunkStep {
+  title: string;
+  estimateMinutes: number;
+}
+
+/**
+ * Appends the steps to a card's checklist as unchecked AI items. Steps beyond the checklist
+ * limit are dropped; nothing changes when no step fits or an id is not unique.
+ */
+export function applyChunkAsChecklist(
+  state: PersistedState,
+  input: { cardId: string; steps: ChunkStep[]; itemIds: string[]; now: string },
+): PersistedState {
+  const card = state.cards[input.cardId];
+  if (!card || input.itemIds.length !== input.steps.length) return state;
+  const taken = new Set(card.checklist.map((i) => i.id));
+  if (new Set(input.itemIds).size !== input.itemIds.length) return state;
+  if (input.itemIds.some((id) => taken.has(id))) return state;
+
+  const room = MAX_CHECKLIST_ITEMS - card.checklist.length;
+  const items: ChecklistItem[] = input.steps
+    .map((step, i) => ({ step, id: input.itemIds[i], title: cleanTitle(step.title) }))
+    .filter(({ title }) => title !== "")
+    .slice(0, Math.max(0, room))
+    .map(({ step, id, title }) => ({
+      id,
+      title,
+      done: false,
+      estimateMinutes: Math.max(0, Math.round(step.estimateMinutes)),
+      source: "ai",
+    }));
+  if (items.length === 0) return state;
+
+  return updateCard(state, {
+    cardId: card.id,
+    patch: { checklist: [...card.checklist, ...items] },
+    now: input.now,
+  });
+}
+
+/**
+ * Creates one card per step at the bottom of `columnId` (same board as the parent).
+ * New cards inherit the parent's labels and priority and note where they came from.
+ */
+export function applyChunkAsCards(
+  state: PersistedState,
+  input: {
+    parentCardId: string;
+    columnId: string;
+    steps: ChunkStep[];
+    cardIds: string[];
+    now: string;
+  },
+): PersistedState {
+  const parent = state.cards[input.parentCardId];
+  const column = state.columns[input.columnId];
+  if (!parent || !column || column.boardId !== parent.boardId) return state;
+  if (input.steps.length === 0 || input.cardIds.length !== input.steps.length) return state;
+  if (new Set(input.cardIds).size !== input.cardIds.length) return state;
+  if (input.cardIds.some((id) => state.cards[id])) return state;
+
+  let next = state;
+  input.steps.forEach((step, i) => {
+    next = addCard(next, {
+      columnId: column.id,
+      id: input.cardIds[i],
+      title: step.title,
+      now: input.now,
+      fields: {
+        priority: parent.priority,
+        labelIds: [...parent.labelIds],
+        description: `from: ${parent.title}\nEstimate: ${Math.round(step.estimateMinutes)} min`,
+      },
+    });
+  });
+  return next;
 }
 
 /** Columns of a board, in order. */

@@ -129,19 +129,26 @@ describe("Chunk it dialog", () => {
     expect(within(dialog).getByRole("button", { name: "Generate steps" })).toBeInTheDocument();
   });
 
-  it("shows the server's message and retries", async () => {
+  it("asks you to wait when the AI is busy, then retries", async () => {
     const user = userEvent.setup();
     stubFetch(
-      Response.json(makeApiError("RATE_LIMITED", "The AI is busy right now.", 20), { status: 429 }),
+      Response.json(makeApiError("RATE_LIMITED", "The AI is busy right now.", 1), { status: 429 }),
       success(),
     );
     renderDemoBoard();
     const dialog = await openFromMenu(user);
 
     await user.click(within(dialog).getByRole("button", { name: "Generate steps" }));
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("The AI is busy right now.");
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("The AI is busy");
+    expect(within(alert).getByRole("button", { name: "Try again in 1s" })).toBeDisabled();
 
-    await user.click(within(dialog).getByRole("button", { name: "Try again" }));
+    const retry = await within(alert).findByRole(
+      "button",
+      { name: "Try again" },
+      { timeout: 3000 },
+    );
+    await user.click(retry);
     await within(dialog).findByRole("list", { name: "Suggested subtasks" });
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -176,5 +183,79 @@ describe("Chunk it dialog", () => {
       expect(screen.queryByRole("dialog", { name: "Chunk it" })).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("textbox", { name: "Card title" })).toHaveValue(BIG_CARD);
+  });
+
+  it("accepts the steps as a checklist on the card", async () => {
+    const user = userEvent.setup();
+    stubFetch(success());
+    const { data } = renderDemoBoard();
+    const dialog = await openFromMenu(user);
+    await user.click(within(dialog).getByRole("button", { name: "Generate steps" }));
+    await within(dialog).findByRole("list", { name: "Suggested subtasks" });
+
+    expect(
+      within(dialog).getByRole("radio", { name: "Add as a checklist on this card" }),
+    ).toBeChecked();
+    await user.click(within(dialog).getByRole("button", { name: "Accept" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Chunk it" })).not.toBeInTheDocument(),
+    );
+    expect(data().cards["demo-card-portfolio"].checklist).toEqual([
+      expect.objectContaining({ title: "Pick a site template", estimateMinutes: 20, source: "ai" }),
+      expect.objectContaining({ title: "Write the about page", estimateMinutes: 60, source: "ai" }),
+      expect.objectContaining({ title: "Deploy to Vercel", estimateMinutes: 25, source: "ai" }),
+    ]);
+    expect(await screen.findByText("Added 3 steps to the checklist.")).toBeInTheDocument();
+  });
+
+  it("accepts the steps as new cards in the chosen column", async () => {
+    const user = userEvent.setup();
+    stubFetch(success());
+    const { data } = renderDemoBoard();
+    const doingBefore = data().columns["demo-col-doing"].cardIds;
+    const dialog = await openFromMenu(user);
+    await user.click(within(dialog).getByRole("button", { name: "Generate steps" }));
+    await within(dialog).findByRole("list", { name: "Suggested subtasks" });
+
+    const column = within(dialog).getByRole("combobox", { name: "Column for the new cards" });
+    expect(column).toHaveValue("demo-col-todo"); // the board's first column by default
+    await user.selectOptions(column, "In Progress");
+    expect(within(dialog).getByRole("radio", { name: /Create as new cards in/ })).toBeChecked();
+    await user.click(within(dialog).getByRole("button", { name: "Accept" }));
+
+    const doing = data().columns["demo-col-doing"].cardIds;
+    expect(doing.slice(0, doingBefore.length)).toEqual(doingBefore);
+    const created = doing.slice(doingBefore.length).map((id) => data().cards[id]);
+    expect(created.map((c) => c.title)).toEqual(SUBTASKS.map((s) => s.title));
+    expect(created[0]).toMatchObject({
+      priority: "high",
+      labelIds: ["demo-label-dev", "demo-label-design"],
+    });
+    expect(await screen.findByText("Created 3 cards in In Progress.")).toBeInTheDocument();
+  });
+
+  it("lets you write the steps by hand when the daily quota is used up", async () => {
+    const user = userEvent.setup();
+    stubFetch(Response.json(makeApiError("QUOTA_EXHAUSTED", "Quota used up."), { status: 503 }));
+    const { data } = renderDemoBoard();
+    const dialog = await openFromMenu(user, "Compare free hosting options");
+
+    await user.click(within(dialog).getByRole("button", { name: "Generate steps" }));
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("Daily AI quota reached");
+    expect(within(alert).queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+
+    await user.click(within(alert).getByRole("button", { name: "Add steps by hand" }));
+    expect(within(dialog).getByRole("button", { name: "Accept" })).toBeDisabled();
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "New subtask" }),
+      "Try Netlify{Enter}",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Accept" }));
+
+    expect(data().cards["demo-card-hosting"].checklist.map((i) => i.title)).toEqual([
+      "Try Netlify",
+    ]);
   });
 });

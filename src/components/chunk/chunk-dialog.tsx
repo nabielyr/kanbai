@@ -1,7 +1,8 @@
 "use client";
 
-import { RefreshCw, Sparkles } from "lucide-react";
+import { Check, RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +21,9 @@ import {
 import { draftFromSubtasks, type DraftSubtask } from "@/lib/ai/subtask-draft";
 import { createId } from "@/lib/domain/ids";
 import { cn } from "@/lib/utils";
-import { useBoardData } from "@/store/board-store-provider";
+import { useBoardActions, useBoardData } from "@/store/board-store-provider";
+import { ApplyModeChoice, type ApplyMode } from "./apply-mode-choice";
+import { ChunkErrorNotice } from "./chunk-error-notice";
 import { SubtaskPreviewList } from "./subtask-preview-list";
 
 const DETAIL_LABELS: Record<DetailLevel, string> = {
@@ -40,20 +43,58 @@ export function ChunkDialog({ cardId, onClose }: { cardId: string | null; onClos
   return (
     <Dialog open={cardId !== null && exists} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-        {shownCardId && exists && <ChunkDialogBody key={shownCardId} cardId={shownCardId} />}
+        {shownCardId && exists && (
+          <ChunkDialogBody key={shownCardId} cardId={shownCardId} onClose={onClose} />
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function ChunkDialogBody({ cardId }: { cardId: string }) {
+function ChunkDialogBody({ cardId, onClose }: { cardId: string; onClose: () => void }) {
   const card = useBoardData((d) => d.cards[cardId]);
+  const firstColumnId = useBoardData((d) =>
+    card ? d.boards[card.boardId]?.columnIds[0] : undefined,
+  );
+  const columns = useBoardData((d) => d.columns);
+  const { applyChunkAsChecklist, applyChunkAsCards } = useBoardActions();
   const [detail, setDetail] = useState<DetailLevel>("medium");
   const [draft, setDraft] = useState<DraftSubtask[] | null>(null);
+  const [mode, setMode] = useState<ApplyMode>("checklist");
+  // New cards go to the board's first column unless another one is picked.
+  const [chosenColumnId, setChosenColumnId] = useState<string | null>(null);
   const { state, generate, cancel } = useChunk();
   const loading = state.status === "loading";
 
   if (!card) return null;
+  const columnId =
+    chosenColumnId && columns[chosenColumnId]?.boardId === card.boardId
+      ? chosenColumnId
+      : (firstColumnId ?? "");
+
+  function accept() {
+    if (!draft || draft.length === 0) return;
+    const steps = draft.map(({ title, estimateMinutes }) => ({ title, estimateMinutes }));
+    if (mode === "checklist") {
+      const added = applyChunkAsChecklist(cardId, steps);
+      if (added === 0) {
+        toast.error("The checklist is full, so no steps were added.");
+        return;
+      }
+      toast.success(`Added ${added} ${added === 1 ? "step" : "steps"} to the checklist.`);
+    } else {
+      const created = applyChunkAsCards(cardId, columnId, steps);
+      if (created.length === 0) {
+        toast.error("Couldn't create the cards. Pick another column and try again.");
+        return;
+      }
+      const where = columns[columnId]?.title ?? "the board";
+      toast.success(
+        `Created ${created.length} ${created.length === 1 ? "card" : "cards"} in ${where}.`,
+      );
+    }
+    onClose();
+  }
 
   async function run() {
     const result = await generate({
@@ -107,15 +148,11 @@ function ChunkDialogBody({ cardId }: { cardId: string }) {
       </fieldset>
 
       {state.status === "error" && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/10 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
-        >
-          <span>{state.error.message}</span>
-          <Button variant="outline" size="xs" onClick={run}>
-            <RefreshCw /> Try again
-          </Button>
-        </div>
+        <ChunkErrorNotice
+          error={state.error}
+          onRetry={run}
+          onManual={draft ? undefined : () => setDraft([])}
+        />
       )}
 
       {loading ? (
@@ -132,6 +169,13 @@ function ChunkDialogBody({ cardId }: { cardId: string }) {
               )}
             </div>
             <SubtaskPreviewList items={draft} onChange={setDraft} />
+            <ApplyModeChoice
+              boardId={card.boardId}
+              mode={mode}
+              onModeChange={setMode}
+              columnId={columnId}
+              onColumnChange={setChosenColumnId}
+            />
           </section>
         )
       )}
@@ -146,9 +190,14 @@ function ChunkDialogBody({ cardId }: { cardId: string }) {
             Cancel
           </Button>
         ) : draft ? (
-          <Button variant="outline" onClick={run}>
-            <RefreshCw /> Regenerate
-          </Button>
+          <>
+            <Button variant="outline" onClick={run}>
+              <RefreshCw /> {state.status === "success" ? "Regenerate" : "Generate steps"}
+            </Button>
+            <Button onClick={accept} disabled={draft.length === 0}>
+              <Check /> Accept
+            </Button>
+          </>
         ) : (
           <Button variant="ai" onClick={run}>
             <Sparkles /> Generate steps
