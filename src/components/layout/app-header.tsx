@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { Logo } from "@/components/brand/logo";
 
 export function AppHeader({ children }: { children?: React.ReactNode }) {
@@ -9,8 +10,11 @@ export function AppHeader({ children }: { children?: React.ReactNode }) {
           <Logo />
         </Link>
         <p className="text-muted-foreground hidden text-sm md:block">Big tasks, bite-sized.</p>
-        {/* Board switcher, theme toggle and account menu land here in later steps. */}
-        <div className="ml-auto flex items-center gap-2">{children}</div>
+        {/* The theme toggle lands here in a later step. */}
+        <div className="ml-auto flex items-center gap-2">
+          {children}
+          <AccountMenu />
+        </div>
       </div>
     </header>
   );
