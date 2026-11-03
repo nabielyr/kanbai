@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
@@ -89,5 +89,25 @@ describe("AccountMenu", () => {
 
     expect(await screen.findByText("Couldn't log out. Please try again.")).toBeInTheDocument();
     expect(nav.refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows the provider's photo, and the initials if it doesn't load", () => {
+    supabase = createFakeSupabase(
+      fakeUser({
+        user_metadata: {
+          full_name: "Nabiel Yandra",
+          avatar_url: "https://avatars.githubusercontent.com/u/1",
+        },
+      }),
+    );
+    const { container } = render(<AccountMenu />);
+    const trigger = screen.getByRole("button", { name: "Account menu for Nabiel Yandra" });
+    const img = container.querySelector("img");
+    expect(img).toHaveAttribute("src", "https://avatars.githubusercontent.com/u/1");
+    expect(trigger).not.toHaveTextContent("NY");
+
+    fireEvent.error(img!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(trigger).toHaveTextContent("NY");
   });
 });

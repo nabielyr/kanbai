@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,7 @@ export function AccountMenu() {
 function UserMenu({ user }: { user: User }) {
   const router = useRouter();
   const display = getUserDisplay(user);
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const logOut = async () => {
     const supabase = getSupabaseBrowserClient();
@@ -63,9 +65,21 @@ function UserMenu({ user }: { user: User }) {
         <button
           type="button"
           aria-label={`Account menu for ${display.name}`}
-          className="bg-ai-soft text-ai focus-visible:ring-ring/50 flex size-8 items-center justify-center rounded-full text-xs font-bold outline-none focus-visible:ring-[3px]"
+          className="bg-ai-soft text-ai focus-visible:ring-ring/50 flex size-8 items-center justify-center overflow-hidden rounded-full text-xs font-bold outline-none focus-visible:ring-[3px]"
         >
-          {display.initials}
+          {display.avatarUrl && !avatarFailed ? (
+            // A tiny remote avatar: plain <img> keeps it out of Next's image optimizer quota.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={display.avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-full object-cover"
+              onError={() => setAvatarFailed(true)}
+            />
+          ) : (
+            display.initials
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">

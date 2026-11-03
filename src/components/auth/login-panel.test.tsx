@@ -96,4 +96,42 @@ describe("LoginPanel", () => {
     expect(screen.getByText(/You're logged in as/)).toHaveTextContent("nabiel@example.com");
     expect(screen.getByRole("link", { name: "Continue" })).toHaveAttribute("href", "/demo");
   });
+
+  it.each([
+    ["Google", "google"],
+    ["GitHub", "github"],
+  ])("logs in with %s and returns to next", async (name, provider) => {
+    const user = userEvent.setup();
+    nav.search = "next=%2Fdemo";
+    render(<LoginPanel />);
+
+    const button = screen.getByRole("button", { name: `Continue with ${name}` });
+    await user.click(button);
+
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider,
+      options: { redirectTo: "http://localhost:3000/auth/callback?next=%2Fdemo" },
+    });
+    // The browser is on its way to the provider: no double clicks meanwhile.
+    expect(button).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeDisabled();
+  });
+
+  it("says so when the provider can't be opened", async () => {
+    const user = userEvent.setup();
+    supabase.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: new Error("offline") });
+    render(<LoginPanel />);
+
+    await user.click(screen.getByRole("button", { name: "Continue with GitHub" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't open GitHub.");
+    expect(screen.getByRole("button", { name: "Continue with GitHub" })).toBeEnabled();
+  });
+
+  it("offers every way to log in", () => {
+    render(<LoginPanel />);
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue with GitHub" })).toBeInTheDocument();
+    expect(sendButton()).toBeInTheDocument();
+  });
 });

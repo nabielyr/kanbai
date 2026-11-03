@@ -3,7 +3,8 @@
 import { LoaderCircle, Mail, MailCheck } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { GitHubIcon, GoogleIcon } from "@/components/brand/provider-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthUser } from "@/hooks/use-auth-user";
@@ -67,11 +68,11 @@ export function LoginPanel() {
   }
 
   if (auth.status === "signed-in") {
+    const { email, name } = getUserDisplay(auth.user);
     return (
       <Panel>
         <p className="text-sm">
-          You&apos;re logged in as{" "}
-          <strong>{getUserDisplay(auth.user).email ?? getUserDisplay(auth.user).name}</strong>.
+          You&apos;re logged in as <strong>{email ?? name}</strong>.
         </p>
         <Button asChild className="mt-4 w-full">
           <Link href={next}>Continue</Link>
@@ -90,8 +91,74 @@ export function LoginPanel() {
           {errorMessage}
         </p>
       )}
+      <OAuthButtons next={next} />
+      <div className="text-muted-foreground my-5 flex items-center gap-3 text-xs">
+        <span className="bg-border h-px flex-1" aria-hidden="true" />
+        or use your email
+        <span className="bg-border h-px flex-1" aria-hidden="true" />
+      </div>
       <EmailLinkForm next={next} />
     </Panel>
+  );
+}
+
+const OAUTH_PROVIDERS = [
+  { id: "google", name: "Google", Icon: GoogleIcon },
+  { id: "github", name: "GitHub", Icon: GitHubIcon },
+] as const;
+
+type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]["id"];
+
+function OAuthButtons({ next }: { next: string }) {
+  const [pending, setPending] = useState<OAuthProvider | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Coming back with the browser's Back button restores this page from cache, spinner and all.
+  useEffect(() => {
+    const reset = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(null);
+    };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
+
+  const start = async (provider: OAuthProvider, name: string) => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setPending(provider);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: authCallbackUrl(window.location.origin, next) },
+    });
+    // On success the browser is already on its way to the provider, so the spinner stays.
+    if (error) {
+      setPending(null);
+      setError(`We couldn't open ${name}. Please try again.`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {OAUTH_PROVIDERS.map(({ id, name, Icon }) => (
+        <Button
+          key={id}
+          type="button"
+          variant="outline"
+          size="lg"
+          disabled={pending !== null}
+          onClick={() => start(id, name)}
+        >
+          {pending === id ? <LoaderCircle className="animate-spin" /> : <Icon className="size-4" />}
+          Continue with {name}
+        </Button>
+      ))}
+      {error && (
+        <p role="alert" className="text-destructive text-sm">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

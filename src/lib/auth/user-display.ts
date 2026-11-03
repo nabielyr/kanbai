@@ -4,6 +4,8 @@ export interface UserDisplay {
   name: string;
   email: string | null;
   initials: string;
+  /** The provider's profile photo (Google, GitHub), if there is a safe one. */
+  avatarUrl: string | null;
 }
 
 const firstText = (...values: unknown[]) =>
@@ -17,11 +19,14 @@ function initialsOf(name: string): string {
   return (first + last).toUpperCase();
 }
 
-/** Name, email and initials for the account menu, whatever way the person logged in. */
+const httpsUrl = (value: string | undefined) => (value?.startsWith("https://") ? value : null);
+
+/** Name, email, initials and photo for the account menu, whatever way the person logged in. */
 export function getUserDisplay(user: Pick<User, "email" | "user_metadata">): UserDisplay {
   const meta = user.user_metadata ?? {};
   const email = firstText(user.email) ?? null;
   const name =
     firstText(meta.full_name, meta.name, meta.user_name) ?? email?.split("@")[0] ?? "Account";
-  return { name, email, initials: initialsOf(name) };
+  const avatarUrl = httpsUrl(firstText(meta.avatar_url, meta.picture));
+  return { name, email, initials: initialsOf(name), avatarUrl };
 }
