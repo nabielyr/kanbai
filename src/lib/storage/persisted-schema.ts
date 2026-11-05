@@ -22,7 +22,7 @@ const checklistItemSchema = z.object({
   source: z.enum(["manual", "ai"]),
 });
 
-const cardSchema = z.object({
+export const cardSchema = z.object({
   id,
   boardId: id,
   columnId: id,
@@ -39,7 +39,7 @@ const cardSchema = z.object({
   updatedAt: timestamp,
 });
 
-const columnSchema = z.object({
+export const columnSchema = z.object({
   id,
   boardId: id,
   title: z.string().min(1).max(100),
@@ -47,7 +47,7 @@ const columnSchema = z.object({
   isDone: z.boolean().optional(),
 });
 
-const boardSchema = z.object({
+export const boardSchema = z.object({
   id,
   title: z.string().min(1).max(200),
   columnIds: z.array(id),

@@ -1,19 +1,18 @@
 "use client";
 
-import { LayoutGrid, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CloudOff, LayoutGrid, Plus, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
+import { useBoardStorage } from "@/hooks/use-board-storage";
 import type { PersistedState } from "@/lib/domain/types";
-import {
-  createLocalStorageAdapter,
-  type StorageNamespace,
-} from "@/lib/storage/local-storage-adapter";
+import type { StorageNamespace } from "@/lib/storage/local-storage-adapter";
 import { useBoardData } from "@/store/board-store-provider";
 import { PersistedBoardProvider } from "@/store/persisted-board-provider";
 import { BoardSwitcher } from "./board-switcher";
 import { BoardSkeleton, BoardView } from "./board-view";
 import { NewBoardDialog } from "./new-board-dialog";
+import { SyncStatusIndicator } from "./sync-status";
 
 interface BoardWorkspaceProps {
   namespace: StorageNamespace;
@@ -25,30 +24,47 @@ interface BoardWorkspaceProps {
   banner?: React.ReactNode;
 }
 
-/** Header + board switcher + the active board, backed by a localStorage namespace. */
+/**
+ * Header + board switcher + the active board. The workspace is saved to the account when
+ * signed in and to this browser otherwise; the demo always stays in this browser.
+ */
 export function BoardWorkspace({
   namespace,
   createInitialData,
   toolbar,
   banner,
 }: BoardWorkspaceProps) {
-  const adapter = useMemo(() => createLocalStorageAdapter(namespace), [namespace]);
+  const storage = useBoardStorage(namespace);
+
+  const loading = (
+    <>
+      <AppHeader />
+      <main className="flex min-h-0 flex-1 flex-col">
+        {banner}
+        <BoardSkeleton />
+      </main>
+    </>
+  );
+  if (!storage) return loading;
 
   return (
     <PersistedBoardProvider
-      adapter={adapter}
+      // Logging in or out swaps where boards live; start over instead of mixing them.
+      key={storage.key}
+      adapter={storage.adapter}
       createInitialData={createInitialData}
-      fallback={
+      fallback={loading}
+      loadError={(retry) => (
         <>
           <AppHeader />
           <main className="flex min-h-0 flex-1 flex-col">
-            {banner}
-            <BoardSkeleton />
+            <LoadFailed onRetry={retry} />
           </main>
         </>
-      }
+      )}
     >
       <AppHeader>
+        <SyncStatusIndicator />
         <BoardSwitcher />
       </AppHeader>
       <main className="flex min-h-0 flex-1 flex-col">
@@ -65,6 +81,26 @@ function ActiveBoard({ toolbar }: { toolbar?: React.ReactNode }) {
   const boardId = useBoardData((d) => d.activeBoardId);
   if (!boardId) return <NoBoards />;
   return <BoardView key={boardId} boardId={boardId} now={now} toolbar={toolbar} />;
+}
+
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center px-4 py-20 text-center"
+    >
+      <span className="bg-muted text-muted-foreground mb-4 rounded-2xl p-4">
+        <CloudOff className="size-8" aria-hidden="true" />
+      </span>
+      <h1 className="text-2xl font-bold">Couldn’t load your boards</h1>
+      <p className="text-muted-foreground mt-2">
+        Check your connection and try again. Nothing in your account was changed.
+      </p>
+      <Button className="mt-6" onClick={onRetry}>
+        <RotateCcw /> Try again
+      </Button>
+    </div>
+  );
 }
 
 function NoBoards() {

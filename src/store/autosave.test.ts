@@ -76,6 +76,85 @@ describe("startAutosave", () => {
     expect(adapter.save).not.toHaveBeenCalled();
   });
 
+  it("retries a failed save with backoff when asked to", async () => {
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue(undefined);
+    const store = newStore();
+    startAutosave(store, fakeAdapter(save), { delayMs: 100, retryDelaysMs: [1000, 5000] });
+
+    store.getState().actions.deleteCard("demo-card-hero");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(save).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(save).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(save).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(save).toHaveBeenCalledTimes(3);
+    await vi.runAllTimersAsync();
+    expect(save).toHaveBeenCalledTimes(3); // saved, so no more retries
+  });
+
+  it("doesn't retry errors that shouldRetry rejects", async () => {
+    const save = vi.fn().mockRejectedValue(new Error("conflict"));
+    const store = newStore();
+    startAutosave(store, fakeAdapter(save), {
+      retryDelaysMs: [1000],
+      shouldRetry: () => false,
+    });
+    store.getState().actions.deleteCard("demo-card-hero");
+    await vi.runAllTimersAsync();
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports pending → saving → saved, and error when a save fails", async () => {
+    let finish: (() => void) | undefined;
+    let fail: ((error: Error) => void) | undefined;
+    const save = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => (finish = resolve)))
+      .mockImplementationOnce(() => new Promise<void>((_, reject) => (fail = reject)));
+    const statuses: string[] = [];
+    const store = newStore();
+    const autosave = startAutosave(store, fakeAdapter(save), {
+      delayMs: 100,
+      onStatusChange: (s) => statuses.push(s),
+    });
+    expect(autosave.getStatus()).toBe("saved");
+
+    store.getState().actions.deleteCard("demo-card-hero");
+    await vi.advanceTimersByTimeAsync(100);
+    finish?.();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(statuses).toEqual(["pending", "saving", "saved"]);
+
+    store.getState().actions.deleteCard("demo-card-ci");
+    await vi.advanceTimersByTimeAsync(100);
+    fail?.(new Error("offline"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(statuses.slice(3)).toEqual(["pending", "saving", "error"]);
+
+    autosave.markSaved();
+    expect(statuses.at(-1)).toBe("saved");
+  });
+
+  it("doesn't report or retry a last flush that fails after stop() (e.g. on logout)", async () => {
+    const save = vi.fn().mockRejectedValue(new Error("signed out"));
+    const store = newStore();
+    const onError = vi.fn();
+    const autosave = startAutosave(store, fakeAdapter(save), { onError, retryDelaysMs: [1000] });
+    store.getState().actions.deleteCard("demo-card-hero");
+    const flushed = autosave.flush();
+    autosave.stop();
+    await flushed;
+    await vi.runAllTimersAsync();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it("stops listening after stop()", async () => {
     const store = newStore();
     const adapter = fakeAdapter();
