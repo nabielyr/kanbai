@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageKey } from "@/lib/storage/local-storage-adapter";
 import { createWorkspaceState } from "@/lib/storage/workspace-seed";
+import { createBoardStore } from "@/store/board-store";
 import { createFakeBoardsDb, type FakeBoardsDb } from "@/test/fake-boards-db";
 import { createFakeSupabase, fakeUser, stubSupabaseEnv } from "@/test/fake-supabase";
 import { BoardWorkspace } from "./board-workspace";
@@ -104,5 +105,107 @@ describe("BoardWorkspace with an account", () => {
     await createBoard(user, "Thesis");
     await waitFor(() => expect(localStorage.getItem(storageKey("workspace"))).toContain("Thesis"));
     expect(db.rows).toHaveLength(0);
+  });
+});
+
+describe("importing guest boards on login", () => {
+  /** What a guest left in this browser: the starter board (touched) plus "Thesis". */
+  function leaveGuestBoards() {
+    const store = createBoardStore(createWorkspaceState(new Date(2026, 10, 1)));
+    store.getState().actions.createBoard("Thesis");
+    localStorage.setItem(storageKey("workspace"), JSON.stringify(store.getState().data));
+  }
+
+  const accountTitles = () => db.rowsOf("user-a").map((r) => r.title);
+
+  beforeEach(() => {
+    signedIn = fakeUser({ id: "user-a" });
+  });
+
+  it("imports them into a new account, replacing the untouched starter board", async () => {
+    leaveGuestBoards();
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    const dialog = await screen.findByRole("dialog", { name: "Import your 2 guest boards?" });
+    expect(
+      within(dialog)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["My first board", "Thesis"]);
+    await user.click(within(dialog).getByRole("button", { name: "Import 2 boards" }));
+
+    expect(await screen.findByText("Imported 2 boards to your account.")).toBeInTheDocument();
+    expect(accountTitles()).toEqual(["My first board", "Thesis"]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("My first board");
+    expect(localStorage.getItem(storageKey("workspace"))).toBeNull();
+  });
+
+  it("adds them after the boards already in the account", async () => {
+    const user = userEvent.setup();
+    const first = renderWorkspace();
+    await screen.findByRole("heading", { level: 1 });
+    await createBoard(user, "Work");
+    await waitFor(() => expect(accountTitles()).toEqual(["My first board", "Work"]));
+    first.unmount();
+
+    leaveGuestBoards();
+    renderWorkspace();
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Import 2 boards" }));
+    await waitFor(() =>
+      expect(accountTitles()).toEqual(["My first board", "Work", "My first board", "Thesis"]),
+    );
+  });
+
+  it("keeps the guest copy and says so when the import can't be saved yet", async () => {
+    leaveGuestBoards();
+    const user = userEvent.setup();
+    renderWorkspace();
+    const dialog = await screen.findByRole("dialog");
+    db.failNext(2);
+    await user.click(within(dialog).getByRole("button", { name: "Import 2 boards" }));
+
+    expect(await screen.findByText("Imported 2 boards.")).toBeInTheDocument();
+    expect(localStorage.getItem(storageKey("workspace"))).toContain("Thesis");
+  });
+
+  it("Skip leaves them in this browser and doesn't ask again", async () => {
+    leaveGuestBoards();
+    const user = userEvent.setup();
+    const first = renderWorkspace();
+    await user.click(await screen.findByRole("button", { name: "Skip" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(localStorage.getItem(storageKey("workspace"))).toContain("Thesis");
+    first.unmount();
+
+    renderWorkspace();
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("My first board");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(db.rows).toHaveLength(0);
+  });
+
+  it("asks again next time when closed without choosing", async () => {
+    leaveGuestBoards();
+    const user = userEvent.setup();
+    const first = renderWorkspace();
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    first.unmount();
+
+    renderWorkspace();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("doesn't ask when the guest never changed the starter board", async () => {
+    localStorage.setItem(
+      storageKey("workspace"),
+      JSON.stringify(createWorkspaceState(new Date(2026, 10, 1))),
+    );
+    renderWorkspace();
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

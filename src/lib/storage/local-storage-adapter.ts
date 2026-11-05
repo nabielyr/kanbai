@@ -8,7 +8,7 @@ export function storageKey(namespace: StorageNamespace): string {
 }
 
 /** Returns window.localStorage, or null when it's unavailable (SSR, blocked cookies, etc.). */
-function browserStorage(): Storage | null {
+export function browserStorage(): Storage | null {
   try {
     return typeof window === "undefined" ? null : window.localStorage;
   } catch {

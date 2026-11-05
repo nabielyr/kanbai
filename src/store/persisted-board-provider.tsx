@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -24,6 +25,13 @@ const SyncStatusContext = createContext<SyncStatus | null>(null);
 /** The account save status, or null when boards are only kept in this browser. */
 export function useSyncStatus(): SyncStatus | null {
   return useContext(SyncStatusContext);
+}
+
+const SaveNowContext = createContext<() => Promise<boolean>>(async () => false);
+
+/** Saves pending changes right away; resolves true once everything is saved. */
+export function useSaveNow(): () => Promise<boolean> {
+  return useContext(SaveNowContext);
 }
 
 /** Batches quick edits into one request per board. */
@@ -75,6 +83,13 @@ export function PersistedBoardProvider({
   const [loadFailed, setLoadFailed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const offline = useOffline();
+  const autosaveRef = useRef<Autosave | null>(null);
+  const saveNow = useCallback(async () => {
+    const autosave = autosaveRef.current;
+    if (!autosave) return false;
+    await autosave.flush();
+    return autosave.getStatus() === "saved";
+  }, []);
   // Shared between React StrictMode's double effect run, so a "corrupt data" result
   // (which moves the bad value aside) is still reported exactly once.
   const loadRef = useRef<{
@@ -186,6 +201,7 @@ export function PersistedBoardProvider({
         );
 
         unsubscribeExternal = adapter.subscribe?.(() => void reload());
+        autosaveRef.current = autosave;
         setStore(boardStore);
       },
       () => {
@@ -213,6 +229,7 @@ export function PersistedBoardProvider({
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       unsubscribeExternal?.();
+      if (autosaveRef.current === autosave) autosaveRef.current = null;
       if (autosave) {
         void autosave.flush();
         autosave.stop();
@@ -244,7 +261,9 @@ export function PersistedBoardProvider({
 
   return (
     <SyncStatusContext.Provider value={syncStatus}>
-      <BoardStoreProvider store={store}>{children}</BoardStoreProvider>
+      <SaveNowContext.Provider value={saveNow}>
+        <BoardStoreProvider store={store}>{children}</BoardStoreProvider>
+      </SaveNowContext.Provider>
     </SyncStatusContext.Provider>
   );
 }

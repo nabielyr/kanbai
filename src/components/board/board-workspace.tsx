@@ -11,6 +11,7 @@ import { useBoardData } from "@/store/board-store-provider";
 import { PersistedBoardProvider } from "@/store/persisted-board-provider";
 import { BoardSwitcher } from "./board-switcher";
 import { BoardSkeleton, BoardView } from "./board-view";
+import { ImportGuestBoardsDialog } from "./import-guest-boards-dialog";
 import { NewBoardDialog } from "./new-board-dialog";
 import { SyncStatusIndicator } from "./sync-status";
 
@@ -71,6 +72,7 @@ export function BoardWorkspace({
         {banner}
         <ActiveBoard toolbar={toolbar} />
       </main>
+      {storage.userId && <ImportGuestBoardsDialog userId={storage.userId} />}
     </PersistedBoardProvider>
   );
 }

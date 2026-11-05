@@ -7,6 +7,7 @@ import {
   type LoadResult,
   type StorageAdapter,
 } from "./adapter";
+import { browserStorage } from "./local-storage-adapter";
 import { boardSchema, cardSchema, columnSchema, parsePersistedState } from "./persisted-schema";
 
 // A signed-in user's boards, one row per board in `public.boards` (supabase/migrations).
@@ -85,14 +86,6 @@ function readDocument(row: BoardRow): BoardDocument | null {
 
 function requestSignal(): AbortSignal {
   return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-}
-
-function browserStorage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 export function createSupabaseAdapter(

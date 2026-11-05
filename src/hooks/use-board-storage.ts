@@ -15,6 +15,8 @@ export interface BoardStorage {
   adapter: StorageAdapter;
   /** Changes whenever the adapter does (e.g. on login), so callers can remount on it. */
   key: string;
+  /** Set when the boards are saved to this user's account. */
+  userId?: string;
 }
 
 /**
@@ -33,7 +35,11 @@ export function useBoardStorage(namespace: StorageNamespace): BoardStorage | nul
       // A user id only exists after useAuthUser's effect ran, so this is in the browser.
       const client = getSupabaseBrowserClient();
       if (client) {
-        return { key: `account:${userId}`, adapter: createSupabaseAdapter(client, userId) };
+        return {
+          key: `account:${userId}`,
+          adapter: createSupabaseAdapter(client, userId),
+          userId,
+        };
       }
     }
     return { key: namespace, adapter: createLocalStorageAdapter(namespace) };
