@@ -74,7 +74,7 @@ export function NextTaskProvider({
       description:
         next.reasons.length > 0
           ? next.reasons.join(" · ")
-          : "Nothing urgent — a good one to start with.",
+          : "Nothing urgent, so it's a good one to start with.",
       action: { label: "Open", onClick: () => openCard(next.cardId) },
     });
   }, [storeApi, filtered, boardId, now, openCard]);

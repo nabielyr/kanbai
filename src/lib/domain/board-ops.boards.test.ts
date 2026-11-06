@@ -99,7 +99,7 @@ describe("deleteBoard", () => {
     state = createBoard(state, { id: "b1", title: "One", columnIds: columnIds("b1"), now: NOW });
     state = addCard(state, { columnId: "b1-c1", id: "card1", title: "Task", now: NOW });
     state = createBoard(state, { id: "b2", title: "Two", columnIds: columnIds("b2"), now: NOW });
-    return state; // order: demo-board, b1, b2 — active b2
+    return state; // order: demo-board, b1, b2; active b2
   };
 
   it("removes the board with all its columns and cards", () => {

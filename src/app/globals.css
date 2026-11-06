@@ -90,6 +90,11 @@
 
   --shadow-soft: var(--shadow-soft);
   --shadow-lift: var(--shadow-lift);
+  --shadow-paper: var(--shadow-paper);
+  --shadow-paper-lift: var(--shadow-paper-lift);
+  --color-tape-overdue: var(--tape-overdue);
+  --color-tape-today: var(--tape-today);
+  --color-tape-soon: var(--tape-soon);
 }
 
 :root {
@@ -101,7 +106,7 @@
   --card-foreground: #1e1b2e;
   --popover: #ffffff;
   --popover-foreground: #1e1b2e;
-  --primary: #ff7a45; /* tangerine — ink text on top for contrast */
+  --primary: #ff7a45; /* tangerine, ink text on top for contrast */
   --primary-foreground: #1e1b2e;
   --secondary: #f2ede4;
   --secondary-foreground: #1e1b2e;
@@ -147,6 +152,12 @@
 
   --shadow-soft: 0 1px 2px rgb(30 27 46 / 0.05), 0 2px 8px rgb(30 27 46 / 0.05);
   --shadow-lift: 0 4px 10px rgb(30 27 46 / 0.08), 0 16px 32px rgb(30 27 46 / 0.12);
+  /* Cards sit on the board like paper: a crisp offset edge instead of a blurry glow. */
+  --shadow-paper: 2px 3px 0 rgb(30 27 46 / 0.07);
+  --tape-overdue: rgb(255 112 112 / 0.62);
+  --tape-today: rgb(255 159 67 / 0.6);
+  --tape-soon: rgb(250 214 72 / 0.68);
+  --shadow-paper-lift: 4px 6px 0 rgb(30 27 46 / 0.09), 0 10px 22px rgb(30 27 46 / 0.07);
 
   --chart-1: #ff7a45;
   --chart-2: #6e4bf5;
@@ -216,6 +227,11 @@
 
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
   --shadow-lift: 0 6px 14px rgb(0 0 0 / 0.35), 0 18px 36px rgb(0 0 0 / 0.4);
+  --shadow-paper: 2px 3px 0 rgb(0 0 0 / 0.35);
+  --tape-overdue: rgb(255 122 122 / 0.55);
+  --tape-today: rgb(255 180 84 / 0.55);
+  --tape-soon: rgb(242 214 75 / 0.5);
+  --shadow-paper-lift: 4px 6px 0 rgb(0 0 0 / 0.4), 0 10px 22px rgb(0 0 0 / 0.3);
 
   --chart-1: #ff8a5b;
   --chart-2: #9f8bff;
@@ -251,4 +267,28 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/* A strip of washi tape holding a card to the board: torn zigzag ends, faint stripes. */
+@utility washi-tape {
+  clip-path: polygon(
+    4% 0,
+    96% 0,
+    100% 20%,
+    96% 40%,
+    100% 60%,
+    96% 80%,
+    98% 100%,
+    3% 100%,
+    0 80%,
+    4% 60%,
+    0 40%,
+    4% 20%
+  );
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgb(255 255 255 / 0.28) 0 3px,
+    transparent 3px 7px
+  );
+  pointer-events: none;
 }

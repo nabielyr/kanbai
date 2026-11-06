@@ -56,7 +56,7 @@ function useOffline(): boolean {
 }
 
 interface PersistedBoardProviderProps {
-  /** Must be stable (memoized) — a new adapter reloads everything. */
+  /** Must be stable (memoized): a new adapter reloads everything. */
   adapter: StorageAdapter;
   /** Builds the starting data when nothing (valid) is stored yet. Must be stable. */
   createInitialData: () => PersistedState;

@@ -2,7 +2,7 @@ import { clampEstimate, cleanSubtaskTitle, DEFAULT_ESTIMATE_MINUTES } from "./no
 import type { Subtask } from "./schemas";
 
 // The editable preview of AI subtasks in the Chunk it dialog. Nothing here is saved:
-// the draft lives in the dialog until the user accepts it. Pure, like the domain ops —
+// the draft lives in the dialog until the user accepts it. Pure, like the domain ops:
 // unknown ids or no-op edits return the same array.
 
 export interface DraftSubtask {

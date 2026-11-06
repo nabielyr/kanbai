@@ -187,7 +187,7 @@ function CardDialogBody({
           id={`card-${cardId}-description`}
           value={description}
           maxLength={MAX_DESCRIPTION_LENGTH}
-          placeholder="Add more detail — the AI uses this when you “Chunk it”."
+          placeholder="Add more detail. The AI uses this when you “Chunk it”."
           onChange={(e) => setDescription(e.target.value)}
           onBlur={() => {
             if (description !== card.description) updateCard(cardId, { description });

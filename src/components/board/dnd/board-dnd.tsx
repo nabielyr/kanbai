@@ -290,7 +290,7 @@ function CardDragPreview({ cardId, now }: { cardId: string; now: Date }) {
       card={card}
       labels={labels ?? []}
       now={now}
-      className="shadow-lift hover:shadow-lift scale-[1.03] rotate-2 cursor-grabbing"
+      className="shadow-paper-lift hover:shadow-paper-lift scale-[1.03] rotate-2 cursor-grabbing"
     />
   );
 }

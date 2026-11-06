@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDueLabel, getDuePresets, getDueStatus, isValidDueDate } from "./due";
 
-// 23 Oct 2026, late evening local time — a classic spot for timezone off-by-one bugs.
+// 23 Oct 2026, late evening local time, a classic spot for timezone off-by-one bugs.
 const NOW = new Date(2026, 9, 23, 23, 45);
 
 describe("getDueStatus", () => {

@@ -17,7 +17,7 @@ export function guestImportKey(userId: string): string {
   return `kanbai:v1:account:${userId}:guest-import`;
 }
 
-/** A short, stable hash (djb2) — only used to notice that the guest data changed. */
+/** A short, stable hash (djb2), only used to notice that the guest data changed. */
 function hash(text: string): string {
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = (h * 33) ^ text.charCodeAt(i);

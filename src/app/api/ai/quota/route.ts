@@ -4,7 +4,7 @@ import { getCounterStore } from "@/server/counter-store";
 import { getServerEnv } from "@/server/env";
 import { getFreeTriesLeft, readGuestIdentity } from "@/server/guest-quota";
 
-// GET /api/ai/quota — how many free "Chunk it" tries this guest has left, for the badge.
+// GET /api/ai/quota: how many free "Chunk it" tries this guest has left, for the badge.
 // It reads the request, so it always runs at request time (never prerendered).
 
 function json(body: FreeTriesResponse): Response {

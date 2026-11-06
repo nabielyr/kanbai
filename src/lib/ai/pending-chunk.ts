@@ -33,7 +33,7 @@ export function savePendingChunk(
   }
 }
 
-/** The pending chunk, or null (none, unreadable, or expired — those are removed). */
+/** The pending chunk, or null (none, unreadable, or expired; those are removed). */
 export function readPendingChunk(
   now = Date.now(),
   storage: Storage | null = browserStorage(),
@@ -79,7 +79,7 @@ export function remapPendingChunk(
 
 /**
  * The card to resume on: the same id, or else (only when `matchTitle`) a card with the same
- * title on the active board — the account's copy of an untouched starter board.
+ * title on the active board (the account's copy of an untouched starter board).
  */
 export function findPendingCard(
   data: PersistedState,

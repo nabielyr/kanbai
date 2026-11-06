@@ -59,7 +59,7 @@ export function createGroqProvider(options: {
       if (!response.ok) {
         const message =
           (await readJson<GroqErrorBody>(response))?.error?.message ?? response.statusText;
-        // 498: Groq's "capacity exceeded" — temporary, like a 503.
+        // 498: Groq's "capacity exceeded", temporary like a 503.
         if (response.status === 498) throw new ProviderError("groq", "unavailable", message);
         throw failureFromStatus("groq", response.status, {
           message,

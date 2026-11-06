@@ -5,10 +5,11 @@ import type { Card, Label } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import {
   dueChipClass,
-  dueEdgeClass,
+  dueTapeClass,
   labelColorClass,
   priorityIcon,
   priorityMeta,
+  tapeTilt,
 } from "./card-styles";
 
 interface CardTileProps {
@@ -39,15 +40,23 @@ export function CardTile({
   const dueStatus = getDueStatus(card.dueDate, now, isDone);
   const priority = priorityMeta[card.priority];
   const PriorityIcon = priorityIcon[card.priority];
+  const tape = dueTapeClass[dueStatus];
 
   return (
     <article
       className={cn(
-        "group/card bg-card text-card-foreground shadow-soft hover:shadow-lift relative rounded-lg border border-l-4 p-3 transition-shadow",
-        dueEdgeClass[dueStatus],
+        "group/card bg-card text-card-foreground shadow-paper hover:shadow-paper-lift relative rounded-md border p-3 transition-[box-shadow,translate] duration-200 hover:-translate-y-px motion-reduce:hover:translate-y-0",
         className,
       )}
     >
+      {tape && (
+        <span
+          aria-hidden="true"
+          data-tape={dueStatus}
+          className={cn("washi-tape absolute -top-1.5 left-1/2 h-3.5 w-14", tape)}
+          style={{ transform: `translateX(-50%) rotate(${tapeTilt(card.id)}deg)` }}
+        />
+      )}
       {actions && <div className="absolute top-2 right-2">{actions}</div>}
 
       {cardLabels.length > 0 && (

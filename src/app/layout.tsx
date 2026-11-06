@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage" });
 
 export const metadata: Metadata = {
-  title: "KanbAI — Big tasks, bite-sized.",
+  title: "KanbAI | Big tasks, bite-sized.",
   description: "A kanban board with an AI that breaks big tasks into small, actionable subtasks.",
 };
 

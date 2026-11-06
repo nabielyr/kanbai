@@ -46,7 +46,7 @@ export function getChunkErrorCopy(error: ChunkError): ChunkErrorCopy {
     case "INVALID_AI_RESPONSE":
       return {
         title: "The AI returned something odd",
-        detail: "Try again — a second attempt usually works.",
+        detail: "Try again. A second attempt usually works.",
         retry: "now",
         offerManual: false,
       };

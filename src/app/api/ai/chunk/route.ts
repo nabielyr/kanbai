@@ -15,7 +15,7 @@ import {
   type GuestReservation,
 } from "@/server/guest-quota";
 
-// POST /api/ai/chunk — "Chunk it". Guests get a few free tries (then LOGIN_REQUIRED);
+// POST /api/ai/chunk: "Chunk it". Guests get a few free tries (then LOGIN_REQUIRED);
 // rate limits for everyone are added in a later step.
 // POST handlers are never cached, so no route segment config is needed.
 

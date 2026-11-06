@@ -2,7 +2,7 @@ import { Flame, SignalHigh, SignalLow, SignalMedium, type LucideIcon } from "luc
 import type { DueStatus } from "@/lib/domain/due";
 import type { LabelColor, Priority } from "@/lib/domain/types";
 
-// Full class strings only — Tailwind can't see classes built from template strings.
+// Full class strings only: Tailwind can't see classes built from template strings.
 
 export const labelColorClass: Record<LabelColor, string> = {
   mint: "bg-label-mint text-label-mint-foreground",
@@ -35,13 +35,23 @@ export const dueChipClass: Record<DueStatus, string> = {
   overdue: "bg-due-overdue-soft text-due-overdue",
 };
 
-export const dueEdgeClass: Record<DueStatus, string> = {
-  none: "border-l-transparent",
-  later: "border-l-transparent",
-  soon: "border-l-due-soon",
-  today: "border-l-due-today",
-  overdue: "border-l-due-overdue",
+/** The tape holding a card up, colored by how urgent it is. No tape when nothing's due soon. */
+export const dueTapeClass: Record<DueStatus, string | null> = {
+  none: null,
+  later: null,
+  soon: "bg-tape-soon",
+  today: "bg-tape-today",
+  overdue: "bg-tape-overdue",
 };
+
+const TAPE_TILTS = [-3, 2, -1.5, 3, -2.5, 1.5];
+
+/** Each card's tape sits at its own slight angle, like it was stuck on by hand. */
+export function tapeTilt(cardId: string): number {
+  let hash = 0;
+  for (let i = 0; i < cardId.length; i++) hash = (hash * 31 + cardId.charCodeAt(i)) >>> 0;
+  return TAPE_TILTS[hash % TAPE_TILTS.length];
+}
 
 export const priorityMeta: Record<Priority, { label: string; className: string }> = {
   low: { label: "Low", className: "text-muted-foreground" },

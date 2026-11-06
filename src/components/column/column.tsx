@@ -64,7 +64,7 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
       />
 
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <ol className="flex min-h-4 flex-col gap-2 overflow-y-auto px-2 pb-1">
+        <ol className="flex min-h-4 flex-col gap-2.5 overflow-y-auto px-2 pt-1.5 pb-1.5">
           {cardIds.map((cardId) => (
             <SortableCard key={cardId} cardId={cardId} now={now} />
           ))}

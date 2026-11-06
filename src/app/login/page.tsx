@@ -4,7 +4,7 @@ import { LoginPanel, LoginPanelSkeleton } from "@/components/auth/login-panel";
 import { AppHeader } from "@/components/layout/app-header";
 
 export const metadata: Metadata = {
-  title: "Log in — KanbAI",
+  title: "Log in | KanbAI",
 };
 
 export default function LoginPage() {

@@ -75,7 +75,7 @@ export function summarizeFailures(failures: Failure[]): ChunkResult {
   if (real.every((f) => f.kind === "quota_exhausted")) {
     return fail(
       "QUOTA_EXHAUSTED",
-      "Today's free AI quota is used up. It resets tomorrow — you can still add subtasks by hand.",
+      "Today's free AI quota is used up. It resets tomorrow. You can still add subtasks by hand.",
     );
   }
   if (real.some((f) => f.kind === "timeout")) {

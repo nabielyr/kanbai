@@ -46,7 +46,7 @@ const COLUMNS: { key: string; title: string; isDone?: boolean; cards: CardSeed[]
         title: "Build my portfolio website",
         description:
           "Personal site to show my projects: home, about, project pages, contact form. " +
-          "Feels huge — try the ✨ Chunk it button to break it down.",
+          "Feels huge. Try the ✨ Chunk it button to break it down.",
         priority: "high",
         labels: ["dev", "design"],
         dueInDays: 5,

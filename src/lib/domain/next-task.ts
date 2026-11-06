@@ -1,7 +1,7 @@
 import { getDueStatus, type DueStatus } from "./due";
 import type { Card, PersistedState, Priority } from "./types";
 
-// "What should I do next?" — a deterministic, free pick: no AI involved.
+// "What should I do next?": a deterministic, free pick: no AI involved.
 // Score = priority weight + due urgency + a bonus for work already in progress.
 // Cards in done columns are never suggested.
 
