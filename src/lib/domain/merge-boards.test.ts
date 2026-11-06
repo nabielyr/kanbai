@@ -35,6 +35,16 @@ describe("mergeBoards", () => {
       expect(source.columns[id]).toBeUndefined();
   });
 
+  it("maps every old card id to its copy", () => {
+    const { state, cardIds } = mergeBoards(target, source, ids());
+
+    expect(Object.keys(cardIds).sort()).toEqual(Object.keys(source.cards).sort());
+    for (const [oldId, newId] of Object.entries(cardIds)) {
+      expect(state.cards[newId].title).toBe(source.cards[oldId].title);
+      expect(source.cards[newId]).toBeUndefined();
+    }
+  });
+
   it("keeps every card's content, order and column", () => {
     const { state, boardIds } = mergeBoards(target, source, ids());
     const sourceBoard = source.boards[source.boardOrder[0]];

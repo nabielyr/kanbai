@@ -15,6 +15,11 @@ const serverEnvSchema = z.object({
   GEMINI_MODEL: z.string().trim().min(1).default("gemini-2.5-flash"),
   GROQ_API_KEY: optionalSecret,
   GROQ_MODEL: z.string().trim().min(1).default("llama-3.3-70b-versatile"),
+  UPSTASH_REDIS_REST_URL: z.url({ protocol: /^https?$/ }).optional(),
+  UPSTASH_REDIS_REST_TOKEN: optionalSecret,
+  /** Mixed into IP hashes so the stored hashes can't be matched back to addresses. */
+  IP_HASH_SALT: z.string().default(""),
+  GUEST_FREE_CHUNKS: z.coerce.number().int().min(0).max(100).default(3),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { CHUNK_ENDPOINT, requestChunk } from "./client";
-import { makeApiError } from "./schemas";
+import { CHUNK_ENDPOINT, QUOTA_ENDPOINT, requestChunk, requestFreeTries } from "./client";
+import { FREE_TRIES_HEADER, makeApiError } from "./schemas";
 
 const SUBTASKS = [
   { title: "Outline the sections", estimateMinutes: 20, order: 1 },
@@ -72,5 +72,47 @@ describe("requestChunk", () => {
     await expect(
       requestChunk({ title: "x" }, { signal: controller.signal, fetchImpl: fetchReturning(abort) }),
     ).rejects.toBe(abort);
+  });
+
+  it("reports the guest's free tries left from the response header", async () => {
+    const ok = Response.json(
+      { subtasks: SUBTASKS, provider: "gemini" },
+      { headers: { [FREE_TRIES_HEADER]: "2" } },
+    );
+    expect(await requestChunk({ title: "x" }, { fetchImpl: fetchReturning(ok) })).toMatchObject({
+      ok: true,
+      freeTriesLeft: 2,
+    });
+
+    const login = Response.json(makeApiError("LOGIN_REQUIRED", "Log in."), {
+      status: 401,
+      headers: { [FREE_TRIES_HEADER]: "0" },
+    });
+    expect(await requestChunk({ title: "x" }, { fetchImpl: fetchReturning(login) })).toEqual({
+      ok: false,
+      error: { code: "LOGIN_REQUIRED", message: "Log in." },
+      freeTriesLeft: 0,
+    });
+
+    const junk = Response.json(
+      { subtasks: SUBTASKS, provider: "gemini" },
+      { headers: { [FREE_TRIES_HEADER]: "lots" } },
+    );
+    const result = await requestChunk({ title: "x" }, { fetchImpl: fetchReturning(junk) });
+    expect(result).not.toHaveProperty("freeTriesLeft");
+  });
+});
+
+describe("requestFreeTries", () => {
+  it("returns the count, or null when no limit applies or it can't be read", async () => {
+    const fetchImpl = fetchReturning(Response.json({ freeTriesLeft: 1 }));
+    expect(await requestFreeTries(fetchImpl)).toBe(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe(QUOTA_ENDPOINT);
+
+    expect(await requestFreeTries(fetchReturning(Response.json({ freeTriesLeft: null })))).toBe(
+      null,
+    );
+    expect(await requestFreeTries(fetchReturning(new Response("x", { status: 500 })))).toBe(null);
+    expect(await requestFreeTries(fetchReturning(new TypeError("offline")))).toBe(null);
   });
 });

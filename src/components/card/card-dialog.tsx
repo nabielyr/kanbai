@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useChunkDialog } from "@/components/chunk/chunk-dialog-context";
+import { FreeTriesBadge } from "@/components/chunk/free-tries-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "@/lib/domain/board-ops";
 import { PRIORITIES, type Priority } from "@/lib/domain/types";
@@ -152,17 +153,20 @@ function CardDialogBody({
           <DialogDescription>
             in <span className="text-foreground font-medium">{columnTitle}</span>
           </DialogDescription>
-          <Button
-            variant="ai"
-            size="sm"
-            onClick={() => {
-              // Save typed edits first so the AI sees the latest title and description.
-              commitRef.current?.();
-              openChunk(cardId);
-            }}
-          >
-            <Sparkles /> Chunk it
-          </Button>
+          <div className="flex items-center gap-2">
+            <FreeTriesBadge />
+            <Button
+              variant="ai"
+              size="sm"
+              onClick={() => {
+                // Save typed edits first so the AI sees the latest title and description.
+                commitRef.current?.();
+                openChunk(cardId);
+              }}
+            >
+              <Sparkles /> Chunk it
+            </Button>
+          </div>
         </div>
       </div>
 

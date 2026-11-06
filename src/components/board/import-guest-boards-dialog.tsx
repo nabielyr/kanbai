@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { remapPendingChunk } from "@/lib/ai/pending-chunk";
 import { createEmptyState } from "@/lib/domain/board-ops";
 import { createId } from "@/lib/domain/ids";
 import { mergeBoards } from "@/lib/domain/merge-boards";
@@ -50,7 +51,9 @@ export function ImportGuestBoardsDialog({ userId }: { userId: string }) {
     setImporting(true);
     const current = storeApi.getState().data;
     const base = isUntouchedWorkspace(current) ? createEmptyState() : current;
-    const { state } = mergeBoards(base, offer.data, createId);
+    const { state, cardIds } = mergeBoards(base, offer.data, createId);
+    // A chunk asked for before logging in now runs on the imported copy of its card.
+    remapPendingChunk(cardIds);
     storeApi.getState().actions.replaceState(state);
     markGuestBoardsHandled(userId, offer.fingerprint);
 

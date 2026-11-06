@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, RefreshCw, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Check, LogIn, PencilLine, RefreshCw, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useChunk } from "@/hooks/use-chunk";
+import type { ChunkError } from "@/lib/ai/client";
+import { savePendingChunk } from "@/lib/ai/pending-chunk";
 import {
   DETAIL_LEVELS,
   DETAIL_TARGETS,
@@ -19,11 +22,14 @@ import {
   type DetailLevel,
 } from "@/lib/ai/schemas";
 import { draftFromSubtasks, type DraftSubtask } from "@/lib/ai/subtask-draft";
+import { loginPath } from "@/lib/auth/redirect";
 import { createId } from "@/lib/domain/ids";
 import { cn } from "@/lib/utils";
 import { useBoardActions, useBoardData } from "@/store/board-store-provider";
 import { ApplyModeChoice, type ApplyMode } from "./apply-mode-choice";
+import type { OpenChunkOptions } from "./chunk-dialog-context";
 import { ChunkErrorNotice } from "./chunk-error-notice";
+import { FreeTriesBadge } from "./free-tries-badge";
 import { SubtaskPreviewList } from "./subtask-preview-list";
 
 const DETAIL_LABELS: Record<DetailLevel, string> = {
@@ -34,7 +40,15 @@ const DETAIL_LABELS: Record<DetailLevel, string> = {
 
 const PROVIDER_NAMES = { gemini: "Gemini", groq: "Groq" } as const;
 
-export function ChunkDialog({ cardId, onClose }: { cardId: string | null; onClose: () => void }) {
+export function ChunkDialog({
+  cardId,
+  options,
+  onClose,
+}: {
+  cardId: string | null;
+  options?: OpenChunkOptions;
+  onClose: () => void;
+}) {
   // Keep showing the last card while the close animation runs.
   const [shownCardId, setShownCardId] = useState(cardId);
   if (cardId && cardId !== shownCardId) setShownCardId(cardId);
@@ -44,27 +58,47 @@ export function ChunkDialog({ cardId, onClose }: { cardId: string | null; onClos
     <Dialog open={cardId !== null && exists} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         {shownCardId && exists && (
-          <ChunkDialogBody key={shownCardId} cardId={shownCardId} onClose={onClose} />
+          <ChunkDialogBody
+            key={shownCardId}
+            cardId={shownCardId}
+            options={options}
+            onClose={onClose}
+          />
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function ChunkDialogBody({ cardId, onClose }: { cardId: string; onClose: () => void }) {
+function ChunkDialogBody({
+  cardId,
+  options = {},
+  onClose,
+}: {
+  cardId: string;
+  options?: OpenChunkOptions;
+  onClose: () => void;
+}) {
   const card = useBoardData((d) => d.cards[cardId]);
   const firstColumnId = useBoardData((d) =>
     card ? d.boards[card.boardId]?.columnIds[0] : undefined,
   );
   const columns = useBoardData((d) => d.columns);
   const { applyChunkAsChecklist, applyChunkAsCards } = useBoardActions();
-  const [detail, setDetail] = useState<DetailLevel>("medium");
+  const [detail, setDetail] = useState<DetailLevel>(options.detail ?? "medium");
   const [draft, setDraft] = useState<DraftSubtask[] | null>(null);
   const [mode, setMode] = useState<ApplyMode>("checklist");
   // New cards go to the board's first column unless another one is picked.
   const [chosenColumnId, setChosenColumnId] = useState<string | null>(null);
   const { state, generate, cancel } = useChunk();
   const loading = state.status === "loading";
+  const pathname = usePathname();
+
+  // Resuming after login: generate right away, as if Generate had been clicked.
+  const runOnOpen = useEffectEvent(() => {
+    if (options.autoRun) void run();
+  });
+  useEffect(() => runOnOpen(), []);
 
   if (!card) return null;
   const columnId =
@@ -147,12 +181,28 @@ function ChunkDialogBody({ cardId, onClose }: { cardId: string; onClose: () => v
         </div>
       </fieldset>
 
-      {state.status === "error" && (
-        <ChunkErrorNotice
+      {state.status === "error" && state.error.code === "LOGIN_REQUIRED" ? (
+        <LoginRequiredNotice
           error={state.error}
-          onRetry={run}
+          loginHref={loginPath(pathname)}
+          onLogin={() =>
+            savePendingChunk({
+              cardId,
+              cardTitle: card.title,
+              detail,
+              path: window.location.pathname,
+            })
+          }
           onManual={draft ? undefined : () => setDraft([])}
         />
+      ) : (
+        state.status === "error" && (
+          <ChunkErrorNotice
+            error={state.error}
+            onRetry={run}
+            onManual={draft ? undefined : () => setDraft([])}
+          />
+        )
       )}
 
       {loading ? (
@@ -184,7 +234,8 @@ function ChunkDialogBody({ cardId, onClose }: { cardId: string; onClose: () => v
         Your task text is sent to an AI service. Don&apos;t put sensitive info in tasks you chunk.
       </p>
 
-      <DialogFooter>
+      <DialogFooter className="sm:items-center">
+        <FreeTriesBadge className="self-center sm:mr-auto" />
         {loading ? (
           <Button variant="outline" onClick={cancel}>
             Cancel
@@ -205,6 +256,43 @@ function ChunkDialogBody({ cardId, onClose }: { cardId: string; onClose: () => v
         )}
       </DialogFooter>
     </>
+  );
+}
+
+/** A guest used their free tries: log in (free) and this chunk runs again afterwards. */
+function LoginRequiredNotice({
+  error,
+  loginHref,
+  onLogin,
+  onManual,
+}: {
+  error: ChunkError;
+  loginHref: string;
+  onLogin: () => void;
+  onManual?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="border-ai/30 bg-ai-soft space-y-2 rounded-lg border px-3 py-2.5 text-sm"
+    >
+      <p className="font-semibold">Log in to keep chunking</p>
+      <p className="text-muted-foreground">
+        {error.message} We&apos;ll pick up this chunk right after you log in.
+      </p>
+      <div className="flex flex-wrap gap-2 pt-0.5">
+        <Button variant="ai" size="xs" asChild>
+          <a href={loginHref} onClick={onLogin}>
+            <LogIn /> Log in to continue
+          </a>
+        </Button>
+        {onManual && (
+          <Button variant="ghost" size="xs" onClick={onManual}>
+            <PencilLine /> Add steps by hand
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

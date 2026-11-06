@@ -52,6 +52,17 @@ export const chunkResponseSchema = z.object({
 });
 export type ChunkResponse = z.infer<typeof chunkResponseSchema>;
 
+// ---------- Guest free tries ----------
+
+/** Response header with the guest's free tries left after this request. */
+export const FREE_TRIES_HEADER = "x-free-tries-left";
+
+/** GET /api/ai/quota. `null`: no limit applies (logged in, or login isn't set up). */
+export const freeTriesResponseSchema = z.object({
+  freeTriesLeft: z.number().int().min(0).nullable(),
+});
+export type FreeTriesResponse = z.infer<typeof freeTriesResponseSchema>;
+
 // ---------- Errors ----------
 
 export const AI_ERROR_CODES = [

@@ -50,7 +50,28 @@ describe("getServerEnv", () => {
       GEMINI_MODEL: "gemini-2.5-flash",
       GROQ_API_KEY: undefined,
       GROQ_MODEL: "llama-3.3-70b-versatile",
+      UPSTASH_REDIS_REST_URL: undefined,
+      UPSTASH_REDIS_REST_TOKEN: undefined,
+      IP_HASH_SALT: "",
+      GUEST_FREE_CHUNKS: 3,
     });
+  });
+
+  it("reads the guest quota settings", () => {
+    const env = getServerEnv({
+      UPSTASH_REDIS_REST_URL: "https://eu1-fine-cat.upstash.io",
+      UPSTASH_REDIS_REST_TOKEN: "token",
+      IP_HASH_SALT: "salt",
+      GUEST_FREE_CHUNKS: "5",
+    });
+    expect(env).toMatchObject({
+      UPSTASH_REDIS_REST_URL: "https://eu1-fine-cat.upstash.io",
+      UPSTASH_REDIS_REST_TOKEN: "token",
+      IP_HASH_SALT: "salt",
+      GUEST_FREE_CHUNKS: 5,
+    });
+    expect(() => getServerEnv({ GUEST_FREE_CHUNKS: "lots" })).toThrow();
+    expect(() => getServerEnv({ UPSTASH_REDIS_REST_URL: "not a url" })).toThrow();
   });
 });
 
