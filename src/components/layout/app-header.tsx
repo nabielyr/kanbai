@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "./theme-toggle";
 
 export function AppHeader({ children }: { children?: React.ReactNode }) {
   return (
@@ -10,9 +11,9 @@ export function AppHeader({ children }: { children?: React.ReactNode }) {
           <Logo />
         </Link>
         <p className="text-muted-foreground hidden text-sm md:block">Big tasks, bite-sized.</p>
-        {/* The theme toggle lands here in a later step. */}
         <div className="ml-auto flex items-center gap-2">
           {children}
+          <ThemeToggle />
           <AccountMenu />
         </div>
       </div>
