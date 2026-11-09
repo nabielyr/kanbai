@@ -299,3 +299,88 @@
 .theme-switching * {
   transition: none !important;
 }
+
+/* Motion. Short, springy, and all of it switched off for people who ask for less motion. */
+@theme {
+  --animate-card-lift: card-lift 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop-in: pop-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  --animate-wiggle: wiggle 500ms ease-in-out;
+  --animate-confetti: confetti 900ms cubic-bezier(0.15, 0.6, 0.35, 1) forwards;
+
+  /* Picking a card up off the board: it grows a little, tilts and casts a longer shadow. */
+  @keyframes card-lift {
+    from {
+      scale: 1;
+      rotate: 0deg;
+      box-shadow: var(--shadow-paper);
+    }
+    to {
+      scale: 1.03;
+      rotate: 2deg;
+      box-shadow: var(--shadow-paper-lift);
+    }
+  }
+
+  /* Uses translate/scale (not transform) so it never fights dnd-kit's inline transform. */
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+      scale: 0.94;
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+      scale: 1;
+    }
+  }
+
+  @keyframes wiggle {
+    0%,
+    100% {
+      rotate: 0deg;
+    }
+    25% {
+      rotate: -14deg;
+    }
+    50% {
+      rotate: 10deg;
+    }
+    75% {
+      rotate: -5deg;
+    }
+  }
+
+  /* A paper scrap thrown up and out, then falling a bit as it fades. */
+  @keyframes confetti {
+    from {
+      opacity: 1;
+      translate: 0 0;
+      rotate: 0deg;
+    }
+    55% {
+      opacity: 1;
+      translate: var(--confetti-x) var(--confetti-y);
+    }
+    to {
+      opacity: 0;
+      translate: calc(var(--confetti-x) * 1.15) calc(var(--confetti-y) + 36px);
+      rotate: var(--confetti-spin);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

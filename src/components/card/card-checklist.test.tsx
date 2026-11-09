@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { REDUCED_MOTION_QUERY } from "@/hooks/use-reduced-motion";
 import { renderDemoBoard } from "@/test/render-board";
 
 // While the modal is open, Radix hides the board from assistive tech, so allow hidden nodes.
@@ -120,5 +121,48 @@ describe("card checklist", () => {
         within(dialog).getByRole("button", { name: "Reorder “Outline the sections”" }),
       ).toHaveFocus(),
     );
+  });
+});
+
+describe("checklist confetti", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("bursts when the last item is ticked, and again after unticking and ticking", async () => {
+    const user = userEvent.setup();
+    renderDemoBoard();
+    const dialog = await openCard(user, CASE_STUDY);
+    const confetti = () => within(dialog).queryByTestId("confetti");
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Take screenshots" }));
+    expect(confetti()).toBeNull();
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Write the first draft" }));
+    expect(within(dialog).getByText("3/3 done")).toBeInTheDocument();
+    expect(confetti()).toBeInTheDocument();
+    await waitFor(() => expect(confetti()).toBeNull(), { timeout: 3000 });
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Write the first draft" }));
+    expect(confetti()).toBeNull();
+    await user.click(within(dialog).getByRole("checkbox", { name: "Write the first draft" }));
+    expect(confetti()).toBeInTheDocument();
+  });
+
+  it("stays still when the device asks for reduced motion", async () => {
+    const matchMedia = window.matchMedia;
+    vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+      ...matchMedia(query),
+      matches: query === REDUCED_MOTION_QUERY,
+    }));
+    const user = userEvent.setup();
+    renderDemoBoard();
+    const dialog = await openCard(user, CASE_STUDY);
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Take screenshots" }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "Write the first draft" }));
+
+    expect(within(dialog).getByText("3/3 done")).toBeInTheDocument();
+    expect(within(dialog).queryByTestId("confetti")).toBeNull();
   });
 });

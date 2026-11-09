@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeApiError } from "@/lib/ai/schemas";
@@ -110,6 +110,25 @@ describe("Chunk it dialog", () => {
     expect(stepTitles(dialog)).toEqual(["Choose a template", "Share the link", "Deploy to Vercel"]);
     expect(within(dialog).getByText("1 h 10 min")).toBeInTheDocument(); // 20 + 15 + 35
     expect(data()).toBe(before);
+  });
+
+  it("pops the suggested steps in one after another", async () => {
+    const user = userEvent.setup();
+    stubFetch(success());
+    renderDemoBoard();
+    const dialog = await openFromMenu(user);
+    await user.click(within(dialog).getByRole("button", { name: "Generate steps" }));
+
+    const list = await within(dialog).findByRole("list", { name: "Suggested subtasks" });
+    const rows = within(list).getAllByRole("listitem");
+    expect(rows.map((row) => row.style.animationDelay)).toEqual(["0ms", "60ms", "120ms"]);
+    rows.forEach((row) => expect(row).toHaveClass("animate-pop-in"));
+
+    // Once a row has popped in it stays put, so reordering never replays it.
+    // jsdom has no AnimationEvent, so React listens for the prefixed event name instead.
+    fireEvent(rows[1], new Event("webkitAnimationEnd", { bubbles: true }));
+    expect(rows[1]).not.toHaveClass("animate-pop-in");
+    expect(rows[1].style.animationDelay).toBe("");
   });
 
   it("can be cancelled while the AI is thinking", async () => {

@@ -22,6 +22,8 @@ export function SortableCard({ cardId, now }: { cardId: string; now: Date }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: cardId,
     data: { type: "card" },
+    // Neighbours slide out of the way with the same easing the dropped card lands with.
+    transition: { duration: 220, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
   });
 
   // Ignore the click that can follow a drop.

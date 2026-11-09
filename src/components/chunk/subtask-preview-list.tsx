@@ -17,6 +17,9 @@ import {
   type DraftSubtask,
 } from "@/lib/ai/subtask-draft";
 import { createId } from "@/lib/domain/ids";
+import { cn } from "@/lib/utils";
+
+const POP_STAGGER_MS = 60;
 
 /** The editable list of suggested subtasks. Edits stay in the dialog until accepted. */
 export function SubtaskPreviewList({
@@ -27,6 +30,8 @@ export function SubtaskPreviewList({
   onChange: (items: DraftSubtask[]) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
+  // The steps the AI handed over pop in one after another; steps added later just pop in.
+  const [firstIds] = useState(() => items.map((i) => i.id));
   const full = items.length >= MAX_DRAFT_ITEMS;
   const total = getDraftTotalMinutes(items);
 
@@ -45,6 +50,7 @@ export function SubtaskPreviewList({
               key={item.id}
               item={item}
               index={index}
+              stagger={Math.max(0, firstIds.indexOf(item.id))}
               onUpdate={(patch) => {
                 const next = updateDraftItem(items, item.id, patch);
                 onChange(next);
@@ -98,11 +104,14 @@ export function SubtaskPreviewList({
 function PreviewRow({
   item,
   index,
+  stagger,
   onUpdate,
   onRemove,
 }: {
   item: DraftSubtask;
   index: number;
+  /** Position in the pop-in sequence (60 ms apart). */
+  stagger: number;
   /** Applies a patch and returns the item as saved (titles cleaned, estimates clamped). */
   onUpdate: (patch: Partial<Pick<DraftSubtask, "title" | "estimateMinutes">>) => DraftSubtask;
   onRemove: () => void;
@@ -110,6 +119,8 @@ function PreviewRow({
   // Local text while typing; committed (and cleaned/clamped) on blur or Enter.
   const [title, setTitle] = useState(item.title);
   const [minutes, setMinutes] = useState(String(item.estimateMinutes));
+  // Pop in once. Dropping the class afterwards keeps a reorder from replaying it.
+  const [popping, setPopping] = useState(true);
 
   const commitTitle = () => setTitle(onUpdate({ title }).title);
   const commitMinutes = () =>
@@ -126,7 +137,11 @@ function PreviewRow({
       id={item.id}
       index={index}
       gripLabel={`Reorder “${item.title}”`}
-      className="hover:bg-muted/60"
+      className={cn("hover:bg-muted/60", popping && "animate-pop-in")}
+      style={popping ? { animationDelay: `${stagger * POP_STAGGER_MS}ms` } : undefined}
+      onAnimationEnd={(e) => {
+        if (e.target === e.currentTarget) setPopping(false);
+      }}
     >
       <Input
         aria-label={`Step ${index + 1}`}

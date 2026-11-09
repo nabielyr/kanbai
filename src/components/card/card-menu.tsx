@@ -51,7 +51,7 @@ export function CardMenu({ cardTitle, onEditTitle, onChunk, onDelete }: CardMenu
           <Pencil /> Edit title
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onChunk}>
-          <Sparkles className="text-ai" /> Chunk it
+          <Sparkles className="text-ai motion-safe:in-data-highlighted:animate-wiggle" /> Chunk it
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>

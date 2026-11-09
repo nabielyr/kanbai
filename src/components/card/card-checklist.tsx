@@ -1,11 +1,13 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { ConfettiBurst } from "@/components/common/confetti-burst";
 import { InlineTextInput } from "@/components/common/inline-text-input";
 import { SortableList, SortableRow } from "@/components/common/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { prefersReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   getChecklistProgress,
   MAX_CHECKLIST_ITEMS,
@@ -20,6 +22,9 @@ export function CardChecklist({ cardId }: { cardId: string }) {
   const items = useBoardData((d) => d.cards[cardId]?.checklist);
   const { addChecklistItem, moveChecklistItem } = useBoardActions();
   const [newTitle, setNewTitle] = useState("");
+  // Bumped each time a tick finishes the list, so a fresh burst plays.
+  const [burst, setBurst] = useState(0);
+  const endBurst = useCallback(() => setBurst(0), []);
 
   if (!items) return null;
   const progress = getChecklistProgress(items);
@@ -40,21 +45,24 @@ export function CardChecklist({ cardId }: { cardId: string }) {
       </div>
 
       {progress.total > 0 && (
-        <div
-          className="bg-muted h-2 overflow-hidden rounded-full"
-          role="progressbar"
-          aria-label="Checklist progress"
-          aria-valuemin={0}
-          aria-valuemax={progress.total}
-          aria-valuenow={progress.done}
-        >
+        <div className="relative">
           <div
-            className={cn(
-              "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-              progress.ratio === 1 ? "bg-label-mint-foreground" : "bg-primary",
-            )}
-            style={{ width: `${progress.ratio * 100}%` }}
-          />
+            className="bg-muted h-2 overflow-hidden rounded-full"
+            role="progressbar"
+            aria-label="Checklist progress"
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.done}
+          >
+            <div
+              className={cn(
+                "h-full rounded-full transition-[width,background-color] duration-500 ease-out",
+                progress.ratio === 1 ? "bg-label-mint-foreground" : "bg-primary",
+              )}
+              style={{ width: `${progress.ratio * 100}%` }}
+            />
+          </div>
+          {burst > 0 && <ConfettiBurst key={burst} onDone={endBurst} />}
         </div>
       )}
 
@@ -67,7 +75,16 @@ export function CardChecklist({ cardId }: { cardId: string }) {
           className="space-y-0.5"
         >
           {items.map((item, index) => (
-            <ChecklistRow key={item.id} cardId={cardId} item={item} index={index} />
+            <ChecklistRow
+              key={item.id}
+              cardId={cardId}
+              item={item}
+              index={index}
+              finishesList={!item.done && progress.done === progress.total - 1}
+              onFinish={() => {
+                if (!prefersReducedMotion()) setBurst((n) => n + 1);
+              }}
+            />
           ))}
         </SortableList>
       )}
@@ -100,10 +117,15 @@ function ChecklistRow({
   cardId,
   item,
   index,
+  finishesList,
+  onFinish,
 }: {
   cardId: string;
   item: ChecklistItem;
   index: number;
+  /** Ticking this item would complete the checklist. */
+  finishesList: boolean;
+  onFinish: () => void;
 }) {
   const { toggleChecklistItem, renameChecklistItem, deleteChecklistItem } = useBoardActions();
   const [editing, setEditing] = useState(false);
@@ -119,7 +141,10 @@ function ChecklistRow({
       <input
         type="checkbox"
         checked={item.done}
-        onChange={() => toggleChecklistItem(cardId, item.id)}
+        onChange={() => {
+          toggleChecklistItem(cardId, item.id);
+          if (finishesList) onFinish();
+        }}
         aria-labelledby={titleId}
         className="accent-primary size-4 shrink-0 cursor-pointer"
       />

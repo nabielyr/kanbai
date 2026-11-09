@@ -87,6 +87,8 @@ export function SortableRow({
   index,
   gripLabel,
   className,
+  style,
+  onAnimationEnd,
   children,
 }: {
   id: string;
@@ -94,6 +96,8 @@ export function SortableRow({
   /** Accessible name of the grip, e.g. `Reorder “Write tests”`. */
   gripLabel: string;
   className?: string;
+  style?: React.CSSProperties;
+  onAnimationEnd?: React.AnimationEventHandler<HTMLLIElement>;
   children: React.ReactNode;
 }) {
   const context = useContext(SortableListContext);
@@ -112,7 +116,8 @@ export function SortableRow({
   return (
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      style={{ ...style, transform: CSS.Translate.toString(transform), transition }}
+      onAnimationEnd={onAnimationEnd}
       className={cn(
         "flex items-center gap-1.5 rounded-lg px-1 py-0.5",
         isDragging && "bg-card shadow-lift relative z-10",

@@ -3,6 +3,7 @@
 import {
   closestCenter,
   closestCorners,
+  defaultDropAnimationSideEffects,
   DndContext,
   DragOverlay,
   getFirstCollision,
@@ -16,6 +17,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type DropAnimation,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
@@ -41,10 +43,30 @@ import {
   type ColumnItems,
 } from "@/lib/domain/drag";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useFilteredBoard } from "../board-filters";
 import { SmartKeyboardSensor, SmartMouseSensor, SmartTouchSensor } from "./sensors";
 
 const EMPTY: string[] = [];
+
+const DROP_EASING = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+const fadePlaceholder = defaultDropAnimationSideEffects({ styles: { active: { opacity: "0" } } });
+
+/** The overlay glides into its slot and, on the way, lets go of the lift and tilt. */
+const dropAnimation: DropAnimation = {
+  duration: 180,
+  easing: DROP_EASING,
+  sideEffects: (args) => {
+    const cleanup = fadePlaceholder(args);
+    const tile = args.dragOverlay.node.firstElementChild;
+    tile?.animate?.([{ scale: "1", rotate: "0deg", boxShadow: "var(--shadow-paper)" }], {
+      duration: 180,
+      easing: DROP_EASING,
+      fill: "forwards",
+    });
+    return cleanup;
+  },
+};
 
 /**
  * Card ids shown in a column: the live drag preview while dragging, otherwise the cards that
@@ -83,6 +105,7 @@ export function BoardDnd({
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const lastOverId = useRef<UniqueIdentifier | null>(null);
   const recentlyMovedColumn = useRef(false);
+  const reducedMotion = useReducedMotion();
 
   const sensors = useSensors(
     useSensor(SmartMouseSensor, { activationConstraint: { distance: 5 } }),
@@ -272,7 +295,7 @@ export function BoardDnd({
           {children}
         </SortableContext>
       </PreviewContext.Provider>
-      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}>
+      <DragOverlay dropAnimation={reducedMotion ? null : dropAnimation}>
         {activeCardId ? <CardDragPreview cardId={activeCardId} now={now} /> : null}
         {activeColumnId ? <ColumnDragPreview columnId={activeColumnId} now={now} /> : null}
       </DragOverlay>
@@ -290,7 +313,7 @@ function CardDragPreview({ cardId, now }: { cardId: string; now: Date }) {
       card={card}
       labels={labels ?? []}
       now={now}
-      className="shadow-paper-lift hover:shadow-paper-lift scale-[1.03] rotate-2 cursor-grabbing"
+      className="shadow-paper-lift hover:shadow-paper-lift animate-card-lift cursor-grabbing hover:translate-y-0"
     />
   );
 }
@@ -302,7 +325,7 @@ function ColumnDragPreview({ columnId, now }: { columnId: string; now: Date }) {
   const labels = useBoardData((d) => (column ? d.boards[column.boardId]?.labels : undefined));
   if (!column) return null;
   return (
-    <div className="bg-column shadow-lift w-72 rotate-1 cursor-grabbing rounded-xl p-2">
+    <div className="bg-column shadow-lift motion-safe:animate-in motion-safe:zoom-in-95 w-72 rotate-1 cursor-grabbing rounded-xl p-2">
       <p className="font-heading px-2 pt-1 pb-2 text-sm font-semibold">
         {column.title}{" "}
         <span className="text-muted-foreground font-sans text-xs">{column.cardIds.length}</span>
