@@ -56,7 +56,7 @@ export function ChunkDialog({
 
   return (
     <Dialog open={cardId !== null && exists} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent mobileSheet className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         {shownCardId && exists && (
           <ChunkDialogBody
             key={shownCardId}

@@ -8,7 +8,7 @@ import { useBoardData } from "@/store/board-store-provider";
 import { BoardFiltersProvider, FilterBar } from "./board-filters";
 import { BoardTitle } from "./board-title";
 import { NextTaskButton, NextTaskProvider } from "./next-task";
-import { BoardDnd } from "./dnd/board-dnd";
+import { BoardDnd, BoardScroller } from "./dnd/board-dnd";
 
 export function BoardView({
   boardId,
@@ -41,12 +41,12 @@ export function BoardView({
               </div>
 
               <BoardDnd boardId={board.id} now={now}>
-                <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
+                <BoardScroller>
                   {board.columnIds.map((columnId) => (
                     <Column key={columnId} columnId={columnId} now={now} />
                   ))}
                   <AddColumn boardId={board.id} />
-                </div>
+                </BoardScroller>
               </BoardDnd>
             </div>
           </NextTaskProvider>

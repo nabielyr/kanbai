@@ -44,6 +44,7 @@ import {
 } from "@/lib/domain/drag";
 import { useBoardActions, useBoardData, useBoardStoreApi } from "@/store/board-store-provider";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { cn } from "@/lib/utils";
 import { useFilteredBoard } from "../board-filters";
 import { SmartKeyboardSensor, SmartMouseSensor, SmartTouchSensor } from "./sensors";
 
@@ -73,6 +74,7 @@ const dropAnimation: DropAnimation = {
  * match the current filters (or all of them when nothing is filtered).
  */
 const PreviewContext = createContext<ColumnItems | null>(null);
+const DraggingContext = createContext(false);
 
 export function useColumnCardIds(columnId: string): string[] {
   const preview = useContext(PreviewContext);
@@ -291,15 +293,36 @@ export function BoardDnd({
       accessibility={{ announcements, screenReaderInstructions }}
     >
       <PreviewContext.Provider value={preview}>
-        <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-          {children}
-        </SortableContext>
+        <DraggingContext.Provider value={activeCardId !== null || activeColumnId !== null}>
+          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+            {children}
+          </SortableContext>
+        </DraggingContext.Provider>
       </PreviewContext.Provider>
       <DragOverlay dropAnimation={reducedMotion ? null : dropAnimation}>
         {activeCardId ? <CardDragPreview cardId={activeCardId} now={now} /> : null}
         {activeColumnId ? <ColumnDragPreview columnId={activeColumnId} now={now} /> : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/**
+ * The row of columns. On phones each column snaps to the middle as you swipe; snapping is
+ * paused while dragging so dnd-kit can auto-scroll smoothly toward the edge you hold.
+ */
+export function BoardScroller({ children }: { children: React.ReactNode }) {
+  const dragging = useContext(DraggingContext);
+  return (
+    <div
+      data-board-scroller=""
+      className={cn(
+        "mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 snap-x snap-mandatory items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-6 sm:snap-none sm:px-6",
+        dragging && "snap-none",
+      )}
+    >
+      {children}
+    </div>
   );
 }
 

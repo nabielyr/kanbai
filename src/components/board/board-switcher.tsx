@@ -29,7 +29,12 @@ export function BoardSwitcher() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="max-w-56" aria-label="Switch board">
+          <Button
+            variant="outline"
+            size="sm"
+            className="max-w-56 min-w-0 shrink"
+            aria-label="Switch board"
+          >
             <LayoutGrid />
             <span className="truncate">{activeTitle ?? "Boards"}</span>
             <ChevronsUpDown className="text-muted-foreground" />

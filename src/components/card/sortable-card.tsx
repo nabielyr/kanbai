@@ -66,7 +66,7 @@ export function SortableCard({ cardId, now }: { cardId: string; now: Date }) {
       data-card-id={cardId}
       data-suggested={suggested || undefined}
       className={cn(
-        "focus-visible:ring-ring/50 cursor-pointer touch-manipulation rounded-lg outline-none select-none focus-visible:ring-[3px] active:cursor-grabbing [&_input]:select-text",
+        "focus-visible:ring-ring/50 cursor-pointer touch-manipulation rounded-lg outline-none select-none [-webkit-touch-callout:none] focus-visible:ring-[3px] active:cursor-grabbing [&_input]:select-text",
         // The original stays in place as a faded placeholder while its overlay is dragged.
         isDragging && "opacity-40",
         // "What should I do next?" picked this card.

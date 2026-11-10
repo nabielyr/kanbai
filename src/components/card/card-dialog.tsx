@@ -54,6 +54,7 @@ export function CardDialog({ cardId, now, onClose }: CardDialogProps) {
       }}
     >
       <DialogContent
+        mobileSheet
         className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
         onEscapeKeyDown={(e) => {
           if ((e.target as HTMLElement | null)?.closest?.("[data-inline-edit]")) e.preventDefault();

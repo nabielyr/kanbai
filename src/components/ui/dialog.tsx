@@ -39,13 +39,21 @@ function DialogOverlay({
   );
 }
 
+// On phones the dialog slides up from the bottom edge instead of floating in the middle,
+// so it is in thumb reach and the keyboard pushes it up rather than covering it.
+const mobileSheetClass =
+  "max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-t-3xl max-sm:rounded-b-none max-sm:pt-8 max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:duration-200 max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom max-sm:data-closed:zoom-out-100 max-sm:data-closed:slide-out-to-bottom";
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  mobileSheet = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  /** Show as a bottom sheet on small screens. */
+  mobileSheet?: boolean;
 }) {
   return (
     <DialogPortal>
@@ -54,10 +62,17 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "bg-popover text-popover-foreground ring-foreground/5 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-4xl p-6 text-sm ring-1 duration-100 outline-none sm:max-w-md",
+          mobileSheet && mobileSheetClass,
           className,
         )}
         {...props}
       >
+        {mobileSheet && (
+          <span
+            aria-hidden="true"
+            className="bg-muted-foreground/30 absolute top-3 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full sm:hidden"
+          />
+        )}
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
