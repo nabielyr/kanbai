@@ -134,6 +134,7 @@ export function FilterBar({ boardId }: { boardId: string }) {
           type="search"
           aria-label="Search cards"
           placeholder="Search cards…"
+          data-board-search=""
           value={filters.query}
           maxLength={100}
           onChange={(e) => {

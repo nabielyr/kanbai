@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { useFilteredBoard } from "@/components/board/board-filters";
 import { useColumnCardIds } from "@/components/board/dnd/board-dnd";
+import { useHoveredColumn } from "@/components/board/keyboard-shortcuts";
 import { AddCard } from "@/components/card/add-card";
 import { SortableCard } from "@/components/card/sortable-card";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
     isOver,
     active,
   } = useSortable({ id: columnId, data: { type: "column" } });
+  const hover = useHoveredColumn(columnId);
   if (!column) return null;
 
   const headingId = `column-${column.id}-title`;
@@ -38,6 +40,8 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       aria-labelledby={headingId}
+      data-column-id={column.id}
+      {...hover}
       className={cn(
         "bg-column flex max-h-full w-[85vw] shrink-0 snap-center flex-col rounded-xl transition-shadow sm:w-72",
         cardHovering && "ring-primary/40 ring-2",
@@ -73,10 +77,22 @@ export function Column({ columnId, now }: { columnId: string; now: Date }) {
       {filtered && cardIds.length === 0 && column.cardIds.length > 0 && (
         <p className="text-muted-foreground px-4 pb-1 text-xs">No matching cards</p>
       )}
+      {column.cardIds.length === 0 && cardIds.length === 0 && (
+        <EmptyColumnNote isDone={Boolean(column.isDone)} />
+      )}
 
       <div className="px-2 pt-1 pb-2">
         <AddCard columnId={column.id} columnTitle={column.title} />
       </div>
     </section>
+  );
+}
+
+/** A dashed "spot on the board" for an empty column, so it reads as a place to drop cards. */
+function EmptyColumnNote({ isDone }: { isDone: boolean }) {
+  return (
+    <p className="text-muted-foreground mx-2 rounded-md border-2 border-dashed px-3 py-5 text-center text-xs">
+      {isDone ? "Finished cards land here." : "Nothing here yet. Add a card or drag one in."}
+    </p>
   );
 }

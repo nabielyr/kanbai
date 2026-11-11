@@ -56,6 +56,12 @@ export function CardDialog({ cardId, now, onClose }: CardDialogProps) {
       <DialogContent
         mobileSheet
         className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        // Focus the dialog itself, not the title: reading starts at the top, the keyboard
+        // doesn't pop up on phones, and shortcuts like C work right away.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.target as HTMLElement | null)?.focus();
+        }}
         onEscapeKeyDown={(e) => {
           if ((e.target as HTMLElement | null)?.closest?.("[data-inline-edit]")) e.preventDefault();
         }}

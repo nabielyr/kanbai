@@ -8,9 +8,29 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage" });
 
+const description =
+  "A kanban board with an AI that breaks big tasks into small, actionable subtasks.";
+
+/** Absolute base for link previews: set NEXT_PUBLIC_SITE_URL, else Vercel's production URL. */
+function siteUrl() {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return "http://localhost:3000";
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: "KanbAI | Big tasks, bite-sized.",
-  description: "A kanban board with an AI that breaks big tasks into small, actionable subtasks.",
+  description,
+  openGraph: {
+    title: "KanbAI | Big tasks, bite-sized.",
+    description,
+    siteName: "KanbAI",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

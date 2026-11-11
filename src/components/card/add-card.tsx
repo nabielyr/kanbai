@@ -1,9 +1,10 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useBoardFilters } from "@/components/board/board-filters";
+import { useRegisterComposer } from "@/components/board/keyboard-shortcuts";
 import { InlineTextInput } from "@/components/common/inline-text-input";
 import { useBoardActions } from "@/store/board-store-provider";
 
@@ -12,6 +13,14 @@ export function AddCard({ columnId, columnTitle }: { columnId: string; columnTit
   const [open, setOpen] = useState(false);
   const { addCard } = useBoardActions();
   const { isCardHidden, clearFilters } = useBoardFilters();
+  const root = useRef<HTMLDivElement>(null);
+
+  // N opens this composer, or puts the cursor back in it when it is already open.
+  const openFromShortcut = useCallback(() => {
+    setOpen(true);
+    requestAnimationFrame(() => root.current?.querySelector("input")?.focus());
+  }, []);
+  useRegisterComposer(columnId, openFromShortcut);
 
   function add(title: string) {
     const id = addCard(columnId, title);
@@ -24,18 +33,20 @@ export function AddCard({ columnId, columnTitle }: { columnId: string; columnTit
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="text-muted-foreground hover:bg-background/70 hover:text-foreground focus-visible:ring-ring/50 flex w-full items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium outline-none focus-visible:ring-[3px]"
-      >
-        <Plus className="size-4" aria-hidden="true" /> Add card
-      </button>
+      <div ref={root}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-muted-foreground hover:bg-background/70 hover:text-foreground focus-visible:ring-ring/50 flex w-full items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium outline-none focus-visible:ring-[3px]"
+        >
+          <Plus className="size-4" aria-hidden="true" /> Add card
+        </button>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-1.5">
+    <div ref={root} className="space-y-1.5">
       <InlineTextInput
         aria-label={`New card title in ${columnTitle}`}
         placeholder="What needs doing?"
