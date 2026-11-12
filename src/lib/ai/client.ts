@@ -1,12 +1,14 @@
 import {
   AI_ERROR_STATUS,
   apiErrorSchema,
+  CHUNKS_LEFT_HEADER,
   chunkResponseSchema,
   FREE_TRIES_HEADER,
-  freeTriesResponseSchema,
+  quotaResponseSchema,
   type AiErrorCode,
   type ChunkRequestInput,
   type ChunkResponse,
+  type QuotaResponse,
 } from "./schemas";
 
 // Browser side of "Chunk it". Components never call fetch themselves; they get a typed
@@ -29,12 +31,23 @@ export type ChunkClientResult = (
 ) & {
   /** Set for guests: free tries left after this request. */
   freeTriesLeft?: number;
+  /** Set for logged-in users: chunks left today after this request. */
+  chunksLeftToday?: number;
 };
 
-function readFreeTries(response: Response): { freeTriesLeft?: number } {
-  const raw = response.headers.get(FREE_TRIES_HEADER);
+function readCount(response: Response, header: string): number | undefined {
+  const raw = response.headers.get(header);
   const value = raw === null || raw.trim() === "" ? NaN : Number(raw);
-  return Number.isInteger(value) && value >= 0 ? { freeTriesLeft: value } : {};
+  return Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+function readCounts(response: Response) {
+  const freeTriesLeft = readCount(response, FREE_TRIES_HEADER);
+  const chunksLeftToday = readCount(response, CHUNKS_LEFT_HEADER);
+  return {
+    ...(freeTriesLeft === undefined ? {} : { freeTriesLeft }),
+    ...(chunksLeftToday === undefined ? {} : { chunksLeftToday }),
+  };
 }
 
 /** Used when the server's answer can't be read (e.g. a proxy's HTML error page). */
@@ -78,7 +91,7 @@ export async function requestChunk(
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
   }
 
-  const freeTries = readFreeTries(response);
+  const freeTries = readCounts(response);
   if (response.ok) {
     const parsed = chunkResponseSchema.safeParse(body);
     return parsed.success
@@ -107,16 +120,17 @@ export async function requestChunk(
 }
 
 /**
- * How many free tries this guest has left, or null when no limit applies (logged in, login
- * not set up) or it couldn't be checked. Never rejects: the badge is only a hint.
+ * What this visitor has left: free tries (guest) or chunks today (logged in). A field is null
+ * when no limit applies or it couldn't be checked. Never rejects: the badge is only a hint.
  */
-export async function requestFreeTries(fetchImpl: typeof fetch = fetch): Promise<number | null> {
+export async function requestQuota(fetchImpl: typeof fetch = fetch): Promise<QuotaResponse> {
+  const unknown: QuotaResponse = { freeTriesLeft: null, chunksLeftToday: null };
   try {
     const response = await fetchImpl(QUOTA_ENDPOINT, { cache: "no-store" });
-    if (!response.ok) return null;
-    const parsed = freeTriesResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.freeTriesLeft : null;
+    if (!response.ok) return unknown;
+    const parsed = quotaResponseSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data : unknown;
   } catch {
-    return null;
+    return unknown;
   }
 }

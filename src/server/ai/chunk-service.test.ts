@@ -54,6 +54,9 @@ describe("getServerEnv", () => {
       UPSTASH_REDIS_REST_TOKEN: undefined,
       IP_HASH_SALT: "",
       GUEST_FREE_CHUNKS: 3,
+      RATE_LIMIT_USER_PER_MINUTE: 5,
+      RATE_LIMIT_USER_PER_DAY: 30,
+      RATE_LIMIT_GLOBAL_PER_DAY: 300,
     });
   });
 

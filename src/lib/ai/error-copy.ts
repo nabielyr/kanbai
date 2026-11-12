@@ -12,9 +12,21 @@ export interface ChunkErrorCopy {
   offerManual: boolean;
 }
 
+/** A wait longer than this isn't worth a countdown on the retry button. */
+const LONG_WAIT_SEC = 120;
+
 export function getChunkErrorCopy(error: ChunkError): ChunkErrorCopy {
   switch (error.code) {
     case "RATE_LIMITED":
+      // Waiting minutes or hours means the daily limit, not a busy moment.
+      if (error.retryAfterSec && error.retryAfterSec > LONG_WAIT_SEC) {
+        return {
+          title: "Daily limit reached",
+          detail: error.message,
+          retry: "none",
+          offerManual: true,
+        };
+      }
       return error.retryAfterSec
         ? {
             title: "The AI is busy",

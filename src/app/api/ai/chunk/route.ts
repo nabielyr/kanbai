@@ -1,4 +1,6 @@
 import {
+  AI_ERROR_STATUS,
+  CHUNKS_LEFT_HEADER,
   chunkRequestSchema,
   FREE_TRIES_HEADER,
   makeApiError,
@@ -14,9 +16,17 @@ import {
   reserveGuestTry,
   type GuestReservation,
 } from "@/server/guest-quota";
+import {
+  guestSubject,
+  rateLimitMessage,
+  rateLimitsFromEnv,
+  reserveChunk,
+  userSubject,
+  type RateReservation,
+} from "@/server/rate-limit";
 
-// POST /api/ai/chunk: "Chunk it". Guests get a few free tries (then LOGIN_REQUIRED);
-// rate limits for everyone are added in a later step.
+// POST /api/ai/chunk: "Chunk it". Guests get a few free tries (then LOGIN_REQUIRED), and
+// everyone is held to per-minute, per-day and global limits (see server/rate-limit.ts).
 // POST handlers are never cached, so no route segment config is needed.
 
 const MAX_BODY_BYTES = 8 * 1024;
@@ -73,36 +83,67 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const env = getServerEnv();
+  const limits = rateLimitsFromEnv(env);
+  const caller = await identifyCaller();
   const headers: Record<string, string> = {};
   let reservation: GuestReservation | null = null;
+  let subject: string;
 
-  if ((await identifyCaller()).kind === "guest") {
+  if (caller.kind === "user") {
+    subject = userSubject(caller.userId);
+  } else {
     const guest = await readGuestIdentity(request.headers, env.IP_HASH_SALT);
-    if (guest.isNewDevice) {
-      const secure = new URL(request.url).protocol === "https:";
-      headers["set-cookie"] = deviceCookie(guest.deviceId, secure);
-    }
-    try {
-      reservation = await reserveGuestTry(getCounterStore(env), guest, env.GUEST_FREE_CHUNKS);
-    } catch (thrown) {
-      // Without the counter, free tries can't be checked; logged-in users are unaffected.
-      console.error("[kanbai] Guest quota check failed", thrown);
-      return error(
-        503,
-        makeApiError("UNAVAILABLE", "AI is unavailable for guests right now. Log in to use it."),
-        headers,
-      );
-    }
-    headers[FREE_TRIES_HEADER] = String(reservation.left);
-    if (!reservation.ok) {
-      const limit = env.GUEST_FREE_CHUNKS;
-      const message =
-        limit === 0
-          ? "Log in free to use Chunk it."
-          : `You've used your ${limit} free ${limit === 1 ? "chunk" : "chunks"}. Log in free to keep going.`;
-      return error(401, makeApiError("LOGIN_REQUIRED", message), headers);
+    subject = guestSubject(guest.ipHash);
+    if (caller.kind === "guest") {
+      if (guest.isNewDevice) {
+        const secure = new URL(request.url).protocol === "https:";
+        headers["set-cookie"] = deviceCookie(guest.deviceId, secure);
+      }
+      try {
+        reservation = await reserveGuestTry(getCounterStore(env), guest, env.GUEST_FREE_CHUNKS);
+      } catch (thrown) {
+        // Without the counter, free tries can't be checked; logged-in users are unaffected.
+        console.error("[kanbai] Guest quota check failed", thrown);
+        return error(
+          503,
+          makeApiError("UNAVAILABLE", "AI is unavailable for guests right now. Log in to use it."),
+          headers,
+        );
+      }
+      headers[FREE_TRIES_HEADER] = String(reservation.left);
+      if (!reservation.ok) {
+        const limit = env.GUEST_FREE_CHUNKS;
+        const message =
+          limit === 0
+            ? "Log in free to use Chunk it."
+            : `You've used your ${limit} free ${limit === 1 ? "chunk" : "chunks"}. Log in free to keep going.`;
+        return error(401, makeApiError("LOGIN_REQUIRED", message), headers);
+      }
     }
   }
+
+  // Rate limits apply to everyone. If the counter is down, logged-in visitors keep working
+  // (the AI providers have their own limits); guests were already stopped above.
+  let rate: RateReservation | null = null;
+  try {
+    rate = await reserveChunk(getCounterStore(env), subject, limits);
+  } catch (thrown) {
+    console.error("[kanbai] Rate limit check failed", thrown);
+  }
+  if (rate && !rate.ok) {
+    // A turned-away request doesn't use up a free try.
+    if (reservation?.ok) {
+      await reservation.refund();
+      headers[FREE_TRIES_HEADER] = String(reservation.left + 1);
+    }
+    const message = rateLimitMessage(rate.scope, limits, rate.retryAfterSec);
+    // Everyone's shared budget running out is a quota problem, not this person's doing.
+    const code = rate.scope === "global" ? "QUOTA_EXHAUSTED" : "RATE_LIMITED";
+    if (caller.kind === "user" && rate.scope === "day") headers[CHUNKS_LEFT_HEADER] = "0";
+    return error(AI_ERROR_STATUS[code], makeApiError(code, message, rate.retryAfterSec), headers);
+  }
+  const chunksLeft = rate?.ok && caller.kind === "user" ? rate.leftToday : null;
+  if (chunksLeft !== null) headers[CHUNKS_LEFT_HEADER] = String(chunksLeft);
 
   try {
     const result = await chunkTask(parsed.data, {
@@ -115,9 +156,14 @@ export async function POST(request: Request): Promise<Response> {
       await reservation.refund();
       headers[FREE_TRIES_HEADER] = String(reservation.left + 1);
     }
+    if (rate?.ok) {
+      await rate.refund();
+      if (chunksLeft !== null) headers[CHUNKS_LEFT_HEADER] = String(chunksLeft + 1);
+    }
     return error(result.status, result.body, headers);
   } catch (thrown) {
     if (reservation?.ok) await reservation.refund();
+    if (rate?.ok) await rate.refund();
     // The visitor cancelled (closed the dialog); nobody is waiting for an answer.
     if (request.signal.aborted) return new Response(null, { status: 499 });
     throw thrown;

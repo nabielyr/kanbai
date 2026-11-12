@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { requestFreeTries } from "@/lib/ai/client";
+import { requestQuota } from "@/lib/ai/client";
 import { useAuthUser } from "./use-auth-user";
 
 // Free "Chunk it" tries left for a guest, shared by every badge on the page. Asked from the
@@ -46,7 +46,7 @@ export function useFreeTries(): number | null {
     }
     if (!signedOut || requested) return;
     requested = true;
-    void requestFreeTries().then(setFreeTriesLeft);
+    void requestQuota().then((quota) => setFreeTriesLeft(quota.freeTriesLeft));
   }, [auth.status, signedOut]);
 
   return signedOut ? value : null;

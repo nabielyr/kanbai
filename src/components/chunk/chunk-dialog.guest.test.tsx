@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetChunksLeft } from "@/hooks/use-chunks-left";
 import { resetFreeTries } from "@/hooks/use-free-tries";
 import { QUOTA_ENDPOINT } from "@/lib/ai/client";
 import { readPendingChunk, savePendingChunk } from "@/lib/ai/pending-chunk";
@@ -49,6 +50,7 @@ async function openChunk(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   localStorage.clear();
   resetFreeTries();
+  resetChunksLeft();
   stubSupabaseEnv();
 });
 afterEach(() => {
@@ -117,7 +119,10 @@ describe("Chunk it for guests", () => {
       detail: "detailed",
       path: window.location.pathname,
     });
-    const fetch = stubApi({ chunk: [chunked()] });
+    const fetch = stubApi({
+      quota: [Response.json({ freeTriesLeft: null, chunksLeftToday: 12 })],
+      chunk: [chunked()],
+    });
     renderDemoBoard();
 
     const dialog = await screen.findByRole("dialog", { name: "Chunk it" });
@@ -125,14 +130,18 @@ describe("Chunk it for guests", () => {
       await within(dialog).findByRole("list", { name: "Suggested subtasks" }),
     ).toBeInTheDocument();
     expect(within(dialog).getByRole("radio", { name: /Detailed/ })).toBeChecked();
-    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({
+    expect(
+      JSON.parse(
+        String(fetch.mock.calls.find(([url]) => String(url) !== QUOTA_ENDPOINT)?.[1]?.body),
+      ),
+    ).toMatchObject({
       title: BIG_CARD,
       detail: "detailed",
     });
     expect(readPendingChunk()).toBeNull();
-    // Logged in: no badge, and the quota isn't asked for.
+    // Logged in: chunks left today instead of free tries.
     expect(within(dialog).queryByText(/free tr/)).not.toBeInTheDocument();
-    expect(fetch.mock.calls.some(([url]) => String(url) === QUOTA_ENDPOINT)).toBe(false);
+    expect(await within(dialog).findByText("12 chunks left today")).toBeInTheDocument();
   });
 
   it("doesn't resume for a guest who hasn't logged in", async () => {

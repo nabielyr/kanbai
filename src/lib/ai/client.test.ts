@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { CHUNK_ENDPOINT, QUOTA_ENDPOINT, requestChunk, requestFreeTries } from "./client";
-import { FREE_TRIES_HEADER, makeApiError } from "./schemas";
+import { CHUNK_ENDPOINT, QUOTA_ENDPOINT, requestChunk, requestQuota } from "./client";
+import { CHUNKS_LEFT_HEADER, FREE_TRIES_HEADER, makeApiError } from "./schemas";
 
 const SUBTASKS = [
   { title: "Outline the sections", estimateMinutes: 20, order: 1 },
@@ -103,16 +103,34 @@ describe("requestChunk", () => {
   });
 });
 
-describe("requestFreeTries", () => {
-  it("returns the count, or null when no limit applies or it can't be read", async () => {
+describe("requestChunk chunks left", () => {
+  it("reports a logged-in user's chunks left today from the response header", async () => {
+    const limited = Response.json(makeApiError("RATE_LIMITED", "Too many.", 40), {
+      status: 429,
+      headers: { [CHUNKS_LEFT_HEADER]: "0", "retry-after": "40" },
+    });
+    expect(await requestChunk({ title: "x" }, { fetchImpl: fetchReturning(limited) })).toEqual({
+      ok: false,
+      error: { code: "RATE_LIMITED", message: "Too many.", retryAfterSec: 40 },
+      chunksLeftToday: 0,
+    });
+  });
+});
+
+describe("requestQuota", () => {
+  const unknown = { freeTriesLeft: null, chunksLeftToday: null };
+
+  it("returns the counts, or nulls when no limit applies or it can't be read", async () => {
     const fetchImpl = fetchReturning(Response.json({ freeTriesLeft: 1 }));
-    expect(await requestFreeTries(fetchImpl)).toBe(1);
+    expect(await requestQuota(fetchImpl)).toEqual({ freeTriesLeft: 1, chunksLeftToday: null });
     expect(fetchImpl.mock.calls[0][0]).toBe(QUOTA_ENDPOINT);
 
-    expect(await requestFreeTries(fetchReturning(Response.json({ freeTriesLeft: null })))).toBe(
-      null,
-    );
-    expect(await requestFreeTries(fetchReturning(new Response("x", { status: 500 })))).toBe(null);
-    expect(await requestFreeTries(fetchReturning(new TypeError("offline")))).toBe(null);
+    expect(
+      await requestQuota(
+        fetchReturning(Response.json({ freeTriesLeft: null, chunksLeftToday: 7 })),
+      ),
+    ).toEqual({ freeTriesLeft: null, chunksLeftToday: 7 });
+    expect(await requestQuota(fetchReturning(new Response("x", { status: 500 })))).toEqual(unknown);
+    expect(await requestQuota(fetchReturning(new TypeError("offline")))).toEqual(unknown);
   });
 });

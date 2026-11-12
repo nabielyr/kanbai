@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requestChunk, type ChunkClientResult, type ChunkError } from "@/lib/ai/client";
 import type { ChunkRequestInput, ChunkResponse } from "@/lib/ai/schemas";
+import { setChunksLeftToday } from "./use-chunks-left";
 import { setFreeTriesLeft } from "./use-free-tries";
 
 export type ChunkState =
@@ -32,6 +33,7 @@ export function useChunk(fetchImpl?: typeof fetch) {
         const result = await requestChunk(input, { signal: current.signal, fetchImpl });
         if (current.signal.aborted) return null;
         if (result.freeTriesLeft !== undefined) setFreeTriesLeft(result.freeTriesLeft);
+        if (result.chunksLeftToday !== undefined) setChunksLeftToday(result.chunksLeftToday);
         setState(
           result.ok
             ? { status: "success", data: result.data }

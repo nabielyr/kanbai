@@ -20,6 +20,10 @@ const serverEnvSchema = z.object({
   /** Mixed into IP hashes so the stored hashes can't be matched back to addresses. */
   IP_HASH_SALT: z.string().default(""),
   GUEST_FREE_CHUNKS: z.coerce.number().int().min(0).max(100).default(3),
+  /** "Chunk it" limits per minute and day for one person, and per day for everyone. 0 = off. */
+  RATE_LIMIT_USER_PER_MINUTE: z.coerce.number().int().min(0).max(1000).default(5),
+  RATE_LIMIT_USER_PER_DAY: z.coerce.number().int().min(0).max(100000).default(30),
+  RATE_LIMIT_GLOBAL_PER_DAY: z.coerce.number().int().min(0).max(1000000).default(300),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

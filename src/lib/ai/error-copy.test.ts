@@ -16,6 +16,15 @@ describe("getChunkErrorCopy", () => {
     expect(copy("RATE_LIMITED")).toMatchObject({ retry: "now" });
   });
 
+  it("treats a long rate-limit wait as the daily limit, with no countdown", () => {
+    expect(copy("RATE_LIMITED", 3 * 3600, "You've used your 30 chunks for today.")).toMatchObject({
+      title: "Daily limit reached",
+      detail: "You've used your 30 chunks for today.",
+      retry: "none",
+      offerManual: true,
+    });
+  });
+
   it("offers manual steps instead of a retry when the daily quota is used up", () => {
     expect(copy("QUOTA_EXHAUSTED")).toMatchObject({
       title: "Daily AI quota reached",

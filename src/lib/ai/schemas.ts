@@ -57,11 +57,18 @@ export type ChunkResponse = z.infer<typeof chunkResponseSchema>;
 /** Response header with the guest's free tries left after this request. */
 export const FREE_TRIES_HEADER = "x-free-tries-left";
 
-/** GET /api/ai/quota. `null`: no limit applies (logged in, or login isn't set up). */
-export const freeTriesResponseSchema = z.object({
+/** Response header with the chunks a logged-in user has left today. */
+export const CHUNKS_LEFT_HEADER = "x-chunks-left-today";
+
+/**
+ * GET /api/ai/quota. `freeTriesLeft` is for guests, `chunksLeftToday` for logged-in users.
+ * `null`: no limit applies (or it couldn't be read).
+ */
+export const quotaResponseSchema = z.object({
   freeTriesLeft: z.number().int().min(0).nullable(),
+  chunksLeftToday: z.number().int().min(0).nullable().default(null),
 });
-export type FreeTriesResponse = z.infer<typeof freeTriesResponseSchema>;
+export type QuotaResponse = z.infer<typeof quotaResponseSchema>;
 
 // ---------- Errors ----------
 

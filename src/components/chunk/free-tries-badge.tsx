@@ -1,12 +1,27 @@
 "use client";
 
+import { useChunksLeftToday } from "@/hooks/use-chunks-left";
 import { useFreeTries } from "@/hooks/use-free-tries";
 import { cn } from "@/lib/utils";
 
-/** "2 free tries left" for guests; nothing for logged-in users or when login is off. */
+/**
+ * "2 free tries left" for guests, "28 chunks left today" for logged-in users. Nothing when
+ * login is off or no limit applies.
+ */
 export function FreeTriesBadge({ className }: { className?: string }) {
-  const left = useFreeTries();
-  if (left === null) return null;
+  const freeTries = useFreeTries();
+  const chunksLeft = useChunksLeftToday();
+  const text =
+    freeTries !== null
+      ? freeTries === 0
+        ? "No free tries left"
+        : `${freeTries} free ${freeTries === 1 ? "try" : "tries"} left`
+      : chunksLeft !== null
+        ? chunksLeft === 0
+          ? "No chunks left today"
+          : `${chunksLeft} ${chunksLeft === 1 ? "chunk" : "chunks"} left today`
+        : null;
+  if (text === null) return null;
   return (
     <span
       className={cn(
@@ -14,7 +29,7 @@ export function FreeTriesBadge({ className }: { className?: string }) {
         className,
       )}
     >
-      {left === 0 ? "No free tries left" : `${left} free ${left === 1 ? "try" : "tries"} left`}
+      {text}
     </span>
   );
 }
