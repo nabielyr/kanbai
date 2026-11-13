@@ -121,6 +121,18 @@ describe("POST /api/ai/chunk guest quota", () => {
 });
 
 describe("POST /api/ai/chunk for everyone else", () => {
+  it("answers 504 TIMEOUT when the AI took too long", async () => {
+    caller = { kind: "user", userId: "user-1" };
+    chunk.mockResolvedValue({
+      ok: false,
+      status: 504,
+      body: makeApiError("TIMEOUT", "The AI took too long."),
+    });
+    const response = await post();
+    expect(response.status).toBe(504);
+    expect(await response.json()).toEqual(makeApiError("TIMEOUT", "The AI took too long."));
+  });
+
   it.each<Caller>([{ kind: "user", userId: "user-1" }, { kind: "no-login" }])(
     "has no guest limit ($kind)",
     async (who) => {
