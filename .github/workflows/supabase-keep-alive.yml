@@ -1,0 +1,40 @@
+name: Supabase keep-alive
+
+# Supabase's free plan pauses a project after a week without activity. This sends one small
+# request to its API every few days so the project stays awake.
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   SUPABASE_URL       https://<project-ref>.supabase.co
+#   SUPABASE_ANON_KEY  the publishable key (the same one as NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+on:
+  schedule:
+    - cron: "17 5 * * 1,4"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the database through the REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL or SUPABASE_ANON_KEY isn't set, nothing to ping."
+            exit 0
+          fi
+          # Anonymous visitors have no access to the boards table, so the database answers
+          # 401. That is fine: the request still reached it, which is what counts as activity.
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --max-time 30 --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/boards?select=id&limit=1")
+          echo "Supabase answered $status"
+          case "$status" in
+            200|401|403) ;;
+            *) echo "Unexpected answer, is the project paused?"; exit 1 ;;
+          esac
